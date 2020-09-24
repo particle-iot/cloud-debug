@@ -1,0 +1,5 @@
+.vscode
+*.bin
+lib
+.DS_Store
+target
