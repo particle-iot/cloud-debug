@@ -24,6 +24,25 @@ particle update
 
 ### Download the binary
 
+The binaries are included in Github as releases. The releases match the major and minor version of Device OS that's targeted. For example, 1.5.0 targets 1.5.x, in this case 1.5.2. As other versions of cloud-debug are released, those will have increasing patch versions, like 1.5.1, 1.5.2, etc.. 
+
+Because binaries are generally compatible with later versions of Device OS, you don't need to have an exact match on the Device OS versions and you do not need to downgrade your Device OS binary.
+
+When a version of cloud-debug is released for 2.0.x, it will start with version 2.0.0. However the 1.5.0 version of cloud-debug works just fine on 2.0.0-rc.1.
+
+There is a pre-built binary for each device that is supported, such as:
+
+| Gen   | Network | Name | Details |
+| :---: | :------ | :--- | :--- |
+| Gen 2 | Wi-Fi | photon.bin | |
+| Gen 2 | Wi-Fi | p1.bin | |
+| Gen 2 | Cellular | electron.bin | Also E Series, all SKUs |
+| Gen 3 | Wi-Fi | argon.bin | |
+| Gen 3 | Cellular | boron.bin | Both Boron 2G/3G and Boron LTE |
+| Gen 3 | Cellular | bsom.bin | B402 LTE Cat M1 (North America) |
+| Gen 3 | Cellular | b5som.bin | B523 LTE Cat 1 (Europe) |
+| Gen 3 | Cellular | tracker.bin | Tracker SoM and Tracker One, both T402 and T523 |
+
 
 ### Flashing the binary to the device
 
@@ -36,6 +55,10 @@ particle serial monitor
 ```
 
 Note, however, that particle serial monitor is only a monitor. You cannot type commands into the window to control the device. For that, see the section below, Using the command line.
+
+### Decoding the logs
+
+
 
 ## Using the cloud debug command line
 
@@ -98,6 +121,31 @@ particle flash --usb tinker
 ```
 
 ## Building from source
+
+### In Particle Workbench
+
+- Clone [this repository](https://github.com/particle-iot/cloud-debug).
+- In Particle Workbench use **Particle: Import Project** to load the project.
+- Select your device type and Device OS version using **Particle: Configure Project For Device**
+- Build (either local or cloud)!
+
+Note that there are several libraries required. These are automatically loaded from the project.properties file.
+
+- [CellularHelper](https://github.com/particle-iot/CellularHelper)
+- [SerialCommandParserRK](https://github.com/rickkas7/SerialCommandParserRK)
+- [CarrierLookupRK](https://github.com/rickkas7/CarrierLookupRK)
+
+Because of the number of files and libraries, it's not particularly convenient to use the Web IDE; it's much easier to use Workbench or the CLI compiler.
+
+### In Particle CLI
+
+- Clone [this repository](https://github.com/particle-iot/cloud-debug).
+- Build it using the Particle CLI (cloud compile):
+
+```
+cd cloud-debug
+particle compile boron . --target 2.0.0-rc.2 --saveTo boron.bin
+```
 
 
 ## Version History
