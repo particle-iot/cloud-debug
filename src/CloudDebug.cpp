@@ -6,6 +6,7 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 // Log handler is created dynamically below
 
 #include "CloudDebug.h"
+#include "sourcever.h"
 
 #include <vector>
 
@@ -31,7 +32,10 @@ bool startTest = false;
 StateHandler stateHandler = stateStart;
 unsigned long stateTime;
 unsigned long lastConnectReport = 0;
+unsigned long cloudConnectTime = 0;
 std::vector<bool> traceStack;
+
+void subscriptionHandler(const char *eventName, const char *data);
 
 void setup() {
     // Configure and register log handler dynamically
@@ -39,7 +43,7 @@ void setup() {
 	traceHandler = new StreamLogHandler(Serial, LOG_LEVEL_TRACE);
 	LogManager::instance()->addHandler(infoHandler);
 
-
+    Particle.subscribe("particle/device/", subscriptionHandler, MY_DEVICES);
 	System.on(button_click, buttonHandler);
 
     // This application also works like Tinker, allowing it to be controlled from
@@ -333,6 +337,8 @@ void stateStartTest() {
             Log.info("Binary compiled for: %d.%d.%d", a, b, c);
         }
 
+        Log.info("Cloud Debug Release %d.%d.%d", a, b, SOURCEVER);
+
         Log.info("System version: %s", System.version().c_str());
 
         Log.info("Device ID: %s", System.deviceID().c_str());
@@ -360,15 +366,24 @@ void stateCloudWait() {
 
 void stateCloudReport() {
 	Log.info("Successfully connected to the Particle cloud in %s", elapsedString((millis() - stateTime) / 1000).c_str());
-    stateHandler = stateIdle;
+    stateHandler = stateCloudConnected;
+    cloudConnectTime = millis();
 }
 
+void stateCloudConnected() {
+    if (!Particle.connected()) {
+    	Log.info("Lost cloud connection after %s", elapsedString((millis() - cloudConnectTime) / 1000).c_str());
+        commandParser.printMessagePrompt();
+        lastConnectReport = millis();
+        stateHandler = stateCloudWait;   
+        return;
+    }
 
-void stateIdle() {
     static unsigned long lastReport10s = 0;
     if (millis() - lastReport10s >= 10000) {
         lastReport10s = millis();
 
+    	Log.info("Cloud connected for %s", elapsedString((millis() - cloudConnectTime) / 1000).c_str());
         runReport10s();
         runPowerReport();
         commandParser.printMessagePrompt();
@@ -378,7 +393,21 @@ void stateIdle() {
     if (Time.isValid() && !reportedTime) {
         reportedTime = true;
         Log.info("Time: %s", Time.format().c_str());
+        commandParser.printMessagePrompt();
     }
+
+    static bool requestedName = false;
+    if (!requestedName && millis() - cloudConnectTime >= 10000) {
+        // 10 seconds after connecting to the cloud request the device name and IP address
+        requestedName = true;
+        Log.info("Requesting device name and IP address...");
+        Particle.publish("particle/device/name", "", PRIVATE);
+        Particle.publish("particle/device/ip", "", PRIVATE);
+    }
+
+}
+
+void stateIdle() {
 
 }
 
@@ -553,3 +582,19 @@ bool parseIP(const char *str, IPAddress &addr, bool resolveIfNecessary) {
 }
 
 
+void subscriptionHandler(const char *eventName, const char *data) {
+    const char *lastPart = strrchr(eventName, '/');
+    if (!lastPart) {
+        return;
+    }
+    lastPart++;
+
+    if (strcmp(lastPart, "ip") == 0) {
+        Log.info("Public IP address: %s", data);
+    }
+    else
+    if (strcmp(lastPart, "name") == 0) {
+        Log.info("Device name: %s", data);        
+    }
+    commandParser.printMessagePrompt();
+}

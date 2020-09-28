@@ -22,6 +22,7 @@ void tinkerSetup();
 // CloudDebug.cpp
 void stateCloudReport();
 void stateCloudWait();
+void stateCloudConnected();
 void stateIdle();
 void setTraceLogging(bool trace);
 void pushTraceLogging(bool trace);

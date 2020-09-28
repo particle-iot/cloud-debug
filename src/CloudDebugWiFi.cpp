@@ -66,13 +66,72 @@ void cloudDebugSetup() {
     .addCommandOption('c', "connect", "connect using using WiFi.connect()")
     .addCommandOption('d', "disconnect", "disconnect using WiFi.disconnect()");
 
-#if PLATFORM_ID == PLATFORM_PHOTON_PRODUCTION || PLATFORM_ID == PLATFORM_P1
 	// 
 	commandParser.addCommandHandler("clearCredentials", "Clear Wi-Fi credentials (persistent)", [](SerialCommandParserBase *) {
 		WiFi.clearCredentials();
         commandParser.printMessage("WiFi.clearCredentials called");
 	});
 
+	// 
+	commandParser.addCommandHandler("setCredentials", "Set Wi-Fi credentials (persistent)", [](SerialCommandParserBase *) {
+	    CommandParsingState *cps = commandParser.getParsingState();
+		if (cps->getParseSuccess()) {
+			CommandOptionParsingState *cops;
+			String ssid, password;
+			unsigned long authType = WPA2;
+
+			cops = cps->getByShortOpt('s');
+			if (cops) {
+				ssid = cops->getArgString(0);
+			}
+			else
+			cops = cps->getByShortOpt('p');
+			if (cops) {
+				password = cops->getArgString(0);
+			}
+			else
+			cops = cps->getByShortOpt('t');
+			if (cops) {
+				String authTypeStr = cops->getArgString(0);
+				if (authTypeStr == "UNSEC") {
+					authType = UNSEC;
+				}
+				else
+				if (authTypeStr == "WEP") {
+					authType = WEP;
+				}
+				else
+				if (authTypeStr == "WPA") {
+					authType = WPA;
+				}
+				else
+				if (authTypeStr == "WPA2") {
+					authType = WPA2;
+				}
+			}
+
+			if (password.length() > 0) {
+				// authType default is WPA2, this is what the Wiring API does if authType is not specified
+				WiFi.setCredentials(ssid, password, authType);
+			}
+			else {
+				// No password, only use SSID (also ignore auth)
+				WiFi.setCredentials(ssid);
+			}
+			commandParser.printMessage("setCredentials ssid=%s password=%s authType=%lu", 
+				ssid.c_str(), password.c_str(), authType);
+		}
+		else {
+		    commandParser.printMessageNoPrompt("invalid options");
+            commandParser.printHelpForCommand(cps->getCommandHandlerInfo());
+		}
+	})
+    .addCommandOption('s', "ssid", "SSID (required)", true, 1)
+    .addCommandOption('p', "password", "Password (required except for open networks)", false, 1)
+    .addCommandOption('t', "t", "Authentication type WEP, WPA, WPA2 (required if AP not available)", false, 1);
+
+
+#if PLATFORM_ID == PLATFORM_PHOTON_PRODUCTION || PLATFORM_ID == PLATFORM_P1
 	// 
 	commandParser.addCommandHandler("useDynamicIP", "Turn off static IP address mode (persistent)", [](SerialCommandParserBase *) {
 		WiFi.useDynamicIP();
@@ -261,6 +320,16 @@ void stateWiFiReport() {
 
 void runReport10s() {
 	// Runs every 10 seconds in stateIdle
+
+	WiFiSignal sig = WiFi.RSSI();
+	
+	byte bssid[6];
+	WiFi.BSSID(bssid);
+
+	Log.info("rssi=%.1f bssid=%02X:%02X:%02X:%02X:%02X:%02X", 
+		sig.getStrengthValue(),
+		bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
+
 }
 
 String securityString(int value) {
