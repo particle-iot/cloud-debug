@@ -46,6 +46,7 @@ void setup() {
     Particle.subscribe("particle/device/", subscriptionHandler, MY_DEVICES);
 	System.on(button_click, buttonHandler);
 
+
     // This application also works like Tinker, allowing it to be controlled from
     // the Particle mobile app. This function initializes the Particle.functions.
     tinkerSetup();
@@ -197,6 +198,7 @@ void setup() {
 }
 
 void loop() {
+    networkLoop();
 	commandParser.loop();
     if (stateHandler) {
         stateHandler(); 

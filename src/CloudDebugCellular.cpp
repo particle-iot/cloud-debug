@@ -5,6 +5,8 @@
 
 //  
 #include "CarrierLookupRK.h"
+#include "CellularInterpreterRK.h"
+#include "CellularHelp.h"
  
 void stateCellularWaitModemOn();
 void stateCellularWait();
@@ -32,10 +34,16 @@ void runTowerTest();
 
 CellularHelperEnvironmentResponseStatic<32> envResp;
 static bool modemInfoReported = false;
+CellularInterpreter cellularInterpreter;
 
 void cloudDebugSetup() {
 
 	cellular_on(NULL);
+
+	cellularInterpreter.setup();
+
+	// Add CellularHelp functions to CellularInterpreter
+	CellularHelp::check();
 
 	commandParser.addCommandHandler("tower", "report cell tower information", [](SerialCommandParserBase *) {
 		runTowerTest();
@@ -47,7 +55,7 @@ void cloudDebugSetup() {
 	commandParser.addCommandHandler("setCredentials", "set APN for 3rd-party SIM (persistent)", [](SerialCommandParserBase *) {
         CommandParsingState *cps = commandParser.getParsingState();
 
-		String apn, user, pass;
+		String apn, user, pass;  
 		CommandOptionParsingState *cops;
 		
 		cops = cps->getByShortOpt('a');
@@ -195,6 +203,10 @@ void cloudDebugSetup() {
     .addCommandOption('c', "connect", "connect using using Cellular.connect()")
     .addCommandOption('d', "disconnect", "disconnect using Cellular.disconnect()");
 
+}
+
+void networkLoop() {
+	cellularInterpreter.loop();
 }
 
 void stateStartNetworkTest() {

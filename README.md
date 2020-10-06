@@ -6,7 +6,7 @@
 
 If you haven't already installed the [Particle CLI](https://docs.particle.io/tutorials/developer-tools/cli/), so should do so now. 
 
-Once installed, you will enter commands in a Command Prompt or Terminal window.
+Once installed, you will enter Particle CLI commands in a Command Prompt or Terminal window.
 
 ### Update Device OS
 
@@ -123,6 +123,15 @@ For Windows users, we recommend downloading [PuTTY](http://www.putty.org/). Plug
 
 ### Cellular commands
 
+#### cellular
+
+```
+> cellular -c
+> cellular -d
+```
+
+Connect (-c) or disconnect (-d) from cellular. This only will work reliably after you've successfully connected to the cellular. Executing this during a cloud test may fail.
+
 #### setCredentials
 
 ```
@@ -140,9 +149,9 @@ Sets the APN, and optionally the username and password, for a 3rd-party SIM card
 
 Boron: This setting is persistent and will stay in effect through reboots and Device OS upgrades.
 
-B Series SoM and Tracker SoM: Not supported as these devices do not support 3rd-party SIM cards.
+Electron 2G/3G: Supported, however the setting is not persistent and will be reset when the cellular modem is powered down.
 
-Electron/E Series: Supported, however the setting is not persistent and will be reset when the cellular modem is powered down.
+B Series SoM, Tracker SoM, E Series, Electron LTE: Not supported as these devices do not support 3rd-party SIM cards.
 
 #### clearCredentials
 
@@ -176,18 +185,11 @@ Note: On the Boron LTE you must not only set the SIM to internal (-i) but you mu
 > mnoprof 100
 ```
 
-Sets the Mobile Network Operator Profile number on Boron LTE Cat M1 devices. Setting this incorrectly will prevent the device from connecting to cellular (stuck on blinking green).
+Sets the Mobile Network Operator Profile number on Boron LTE Cat M1 devices. Setting this incorrectly will prevent the device from connecting to cellular (stuck on blinking green). 
+
+You will need to reset the modem after setting the MNO profile. Sending the command `AT+CFUN=15` is one way.
 
 Supported on the Boron LTE only. The B Series SoM and Tracker SoM do not support 3rd-party SIM cards. This setting is persistent and will stay in effect through reboots and Device OS upgrades.
-
-#### cellular
-
-```
-> cellular -c
-> cellular -d
-```
-
-Connect (-c) or disconnect (-d) from cellular. This only will work reliably after you've successfully connected to the cellular. Executing this during a cloud test may fail.
 
 #### command
 
@@ -199,6 +201,15 @@ Connect (-c) or disconnect (-d) from cellular. This only will work reliably afte
 Send a raw AT command to the modem. Everything after "command" is passed directly to Cellular.command, and a `\r\n` is appended to the end. Trace logging is enabled for the duration of the command so you can see the results.
 
 ### Wi-Fi commands
+
+#### wifi
+
+```
+> wifi -c
+> wifi -d
+```
+
+Connect (-c) or disconnect (-d) from Wi-Fi. This only will work reliably after you've successfully connected to the Wi-Fi. Executing this during a cloud test may fail.
 
 #### antenna 
 
@@ -217,15 +228,6 @@ Select the Wi-Fi antenna on the Photon, P0, and P1. This option is persistent an
 | -a | Automatic | Available on Photon and P1, not normally enabled |
 
 The Argon does not have an internal antenna and does not support this option.
-
-#### wifi
-
-```
-> wifi -c
-> wifi -d
-```
-
-Connect (-c) or disconnect (-d) from Wi-Fi. This only will work reliably after you've successfully connected to the Wi-Fi. Executing this during a cloud test may fail.
 
 #### clearCredentials
 
@@ -289,7 +291,6 @@ Sets static IP address mode. This option is persistent and will stay in effect t
 | -d | DNS server address | Yes |
 
 Supported on the Photon and P1 only. The Argon does not support static IP addresses.
-
 
 ### Common commands
 

@@ -189,6 +189,61 @@ void cloudDebugSetup() {
 
 void stateStartNetworkTest() {
 
+#if (PLATFORM_ID == PLATFORM_PHOTON_PRODUCTION) || (PLATFORM_ID == PLATFORM_P1)
+	{
+		WLanSelectAntenna_TypeDef ant = wlan_get_antenna(NULL);
+
+		String antStr;
+		switch(ant) {
+		case ANT_INTERNAL:
+		  	antStr = "internal";
+			break;
+			
+  		case ANT_EXTERNAL:
+		  	antStr = "external";
+			break;
+			
+  		case ANT_AUTO:
+		  	antStr = "auto";
+			break;
+
+		default:
+			antStr = String::format("unknown antenna %d", (int) ant);
+			break;
+		}
+
+		Log.info("Antenna: %s", antStr.c_str());
+	}
+	{
+		IPAddressSource antSource = wlan_get_ipaddress_source(NULL);
+		
+		String antSourceString;
+		switch(antSource) {
+			case STATIC_IP:
+				antSourceString = "static";
+				break;
+
+			case DYNAMIC_IP:
+				antSourceString = "dynamic";
+				break;
+
+			default:
+				antSourceString = String::format("unknown %d", (int)antSource);
+				break;
+		}
+		Log.info("IP Address Configuration: %s", antSourceString.c_str());
+
+		if (antSource == STATIC_IP) {
+			IPConfig conf;
+			conf.size = sizeof(conf);
+			wlan_get_ipaddress(&conf, NULL);
+			Log.info("Static ipAddr: %s", IPAddress(conf.nw.aucIP).toString().c_str());
+			Log.info("  subnetMask: %s", IPAddress(conf.nw.aucSubnetMask).toString().c_str());
+			Log.info("  gateway: %s", IPAddress(conf.nw.aucDefaultGateway).toString().c_str());
+			Log.info("  dns: %s", IPAddress(conf.nw.aucDNSServer).toString().c_str());
+		}
+	}
+#endif
 
 	// If WiFi has been configured, print out the configuration (does not include passwords)
 	if (WiFi.hasCredentials()) {
@@ -223,6 +278,10 @@ void stateStartNetworkTest() {
 
 }
 
+void networkLoop() {
+	
+}
+
 void stateButtonTest() {
 	
 }
@@ -247,7 +306,6 @@ void stateWiFiReport() {
 		WiFi.macAddress(mac);
 		Log.info("MAC address: %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 	}
-
 	Log.info("localIP: %s", WiFi.localIP().toString().c_str());
 	Log.info("subnetMask: %s", WiFi.subnetMask().toString().c_str());
 
@@ -279,7 +337,7 @@ void stateWiFiReport() {
 		Log.info("ping addr %s=%d", addr.toString().c_str(), count);
 	}
 
-#if 0
+#if (PLATFORM_ID == PLATFORM_PHOTON_PRODUCTION) || (PLATFORM_ID == PLATFORM_P1)
 	{
 		IPAddress addr;
 

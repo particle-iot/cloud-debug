@@ -33,6 +33,7 @@ bool parseIP(const char *str, IPAddress &addr, bool resolveIfNecessary);
 
 // CloudDebugCellular.cpp or CloudDebugWiFi.cpp
 void cloudDebugSetup();
+void networkLoop();
 void stateStartNetworkTest();
 void stateButtonTest();
 void runReport10s();
