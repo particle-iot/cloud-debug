@@ -36,7 +36,7 @@ CellularHelperEnvironmentResponseStatic<32> envResp;
 static bool modemInfoReported = false;
 CellularInterpreter cellularInterpreter;
 
-void cloudDebugSetup() {
+void networkSetup() {
 
 	cellular_on(NULL);
 

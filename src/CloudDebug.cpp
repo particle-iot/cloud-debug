@@ -51,7 +51,7 @@ void setup() {
     // the Particle mobile app. This function initializes the Particle.functions.
     tinkerSetup();
 
-    cloudDebugSetup();
+    networkSetup();
 
 	// Configuration of prompt and welcome message
 	commandParser

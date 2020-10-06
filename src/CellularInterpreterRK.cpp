@@ -194,13 +194,24 @@ void CellularInterpreter::addModemMonitor(CellularInterpreterModemMonitor *mon) 
 }
 
 void CellularInterpreter::addModemMonitor(const char *cmdName, uint32_t reasonFlags, CellularInterpreterModemCallback callback, unsigned long timeout) {
-    CellularInterpreterModemMonitor *mon = new CellularInterpreterModemMonitor();
-    mon->command = cmdName;
-    mon->reasonFlags = reasonFlags;
-    mon->timeout = timeout;
-    mon->callback = callback;
+    char *cmdNameMutable = strdup(cmdName);
+    if (cmdNameMutable) {
+        char *endptr = 0;
+        char *token = strtok_r(cmdNameMutable, "|", &endptr);
+        while(token) {
+            CellularInterpreterModemMonitor *mon = new CellularInterpreterModemMonitor();
+            mon->command = token;
+            mon->reasonFlags = reasonFlags;
+            mon->timeout = timeout;
+            mon->callback = callback;
 
-    addModemMonitor(mon);    
+            addModemMonitor(mon);
+
+            token = strtok_r(NULL, "|", &endptr);
+        }
+
+        free(cmdNameMutable);
+    }
 }
 
 

@@ -5,20 +5,36 @@
 
 static Logger _log("app.help");
 
+static const char _cregnMapping[] = 
+    "0: default\n"
+    "1: stat enabled\n"
+    "2: location enabled\n";
 
-static const char _ceregStatMapping[] = 
+
+static const char _cregStatMapping[] = // 6, 7, 9, 10 are CREG only
     "0: not registered, not searching\n"
     "1: registered, home network\n"
     "2: not registered, searching\n"
     "3: registration denied\n"
     "4: unknown, may be out of coverage area\n"
     "5: registered, roaming\n"
-    "8: emergency service only\n";
+    "6: registered, SMS only, home network\n" // CREG only
+    "7: registered, SMS only, roaming\n" // CREG only
+    "8: emergency service only\n" // CEREG only
+    "9: registered CSFB not preferred, home network\n" // CREG only
+    "10: registered CSFB not preferred, roaming\n"; // CREG only
 
-static const char _ceregActMapping[] = 
-    "7: LTE\n"
-    "8: LTE Cat-M1\n"
-    "9: LTE Cat-NB1\n";
+static const char _cregActMapping[] = 
+    "0: GSM\n"      // CREG only
+    "1: GSM COMPACT\n"      // CREG only
+    "2: UTRAN\n"      // CREG only
+    "3: GSM + EDGE\n"      // CREG only
+    "4: GSM + HSDPA\n"      // CREG only
+    "5: GSM + USUPA\n"      // CREG only
+    "6: GSM + HSDPA & USUPA\n"      // CREG only
+    "7: LTE\n"      // CEREG only
+    "8: LTE Cat-M1\n" // CEREG only
+    "9: LTE Cat-NB1\n"; // CEREG only
 
 static const char _copsModeMapping[] = 
     "0: automatic\n"
@@ -58,8 +74,9 @@ CellularHelp::~CellularHelp() {
 }
 
 void CellularHelp::setup() {
+
     CellularInterpreter::getInstance()->addModemMonitor(
-            "CEREG", 
+            "CREG|CGREG|CEREG", 
             CellularInterpreterModemMonitor::REASON_PLUS | CellularInterpreterModemMonitor::REASON_URC,
             [](uint32_t reason, const char *cmd, CellularInterpreterModemMonitor *mon) {
         // 
@@ -71,26 +88,39 @@ void CellularHelp::setup() {
         if ((reason & CellularInterpreterModemMonitor::REASON_PLUS) != 0) {
             // Response
             // int n = getArgInt(0);
-            _log.info("REASON_PLUS: %s", cmd);
+            //_log.info("REASON_PLUS: %s", cmd);
             statArg = 1;
         }
         else {
             // URC
-            _log.info("REASON_URC: %s", cmd);
+            // _log.info("REASON_URC: %s", cmd);
             statArg = 0;
         }
+
+        String regType;
+        if (mon->command.equals("CREG")) {
+            regType = "Network registration (CREG)";
+        }
+        else
+        if (mon->command.equals("CGREG")) {
+            regType = "GPRS network (CGREG)";
+        }
+        if (mon->command.equals("CEREG")) {
+            regType = "EPS network (CEREG)";
+        }
+
         int stat = parser.getArgInt(statArg);
 
-        String statStr = CellularInterpreter::mapValueToString(_ceregStatMapping, stat);
+        String statStr = CellularInterpreter::mapValueToString(_cregStatMapping, stat);
 
-        _log.info("Registration Status: %s", statStr.c_str());
+        _log.info("%s Status: %s", regType.c_str(), statStr.c_str());
 
         if (stat == 1 || stat == 5) {
             if (parser.getNumArgs() >= (statArg + 4)) {
                 _log.info("Tracking area code: %s", parser.getArgString(statArg +1).c_str());
                 _log.info("Cell identifier: %s", parser.getArgString(statArg + 2).c_str());
                 int act = parser.getArgInt(statArg + 3);
-                String actStr = CellularInterpreter::mapValueToString(_ceregActMapping, act); 
+                String actStr = CellularInterpreter::mapValueToString(_cregActMapping, act); 
                 _log.info("Access techology: %s", actStr.c_str());
             }
         }

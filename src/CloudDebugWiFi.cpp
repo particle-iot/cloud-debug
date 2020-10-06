@@ -11,7 +11,7 @@ void wiFiScanCallback(WiFiAccessPoint* wap, void* data);
 String securityString(int value);
 String cipherString(int value);
 
-void cloudDebugSetup() {
+void networkSetup() {
 	// Running in semi-automatic mode, turn on WiFi before beginning
 	WiFi.on();
 
