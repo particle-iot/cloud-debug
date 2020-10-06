@@ -5,7 +5,6 @@
 
 //  
 #include "CarrierLookupRK.h"
-#include "CellularInterpreterRK.h"
 #include "CellularHelp.h"
  
 void stateCellularWaitModemOn();
@@ -34,13 +33,11 @@ void runTowerTest();
 
 CellularHelperEnvironmentResponseStatic<32> envResp;
 static bool modemInfoReported = false;
-CellularInterpreter cellularInterpreter;
 
 void networkSetup() {
 
 	cellular_on(NULL);
 
-	cellularInterpreter.setup();
 
 	// Add CellularHelp functions to CellularInterpreter
 	CellularHelp::check();
@@ -206,7 +203,6 @@ void networkSetup() {
 }
 
 void networkLoop() {
-	cellularInterpreter.loop();
 }
 
 void stateStartNetworkTest() {

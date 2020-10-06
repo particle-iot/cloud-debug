@@ -136,7 +136,7 @@ void CellularHelp::setup() {
 
         if ((reason & CellularInterpreterModemMonitor::REASON_SEND) != 0) {
             // Request
-            _log.info("COPS SEND: %s", cmd);
+            // _log.info("COPS SEND: %s", cmd);
             if (parser.isSet()) {
                 _log.info("Operation Selection Set: mode=%s format=%s",
                     CellularInterpreter::mapValueToString(_copsModeMapping, parser.getArgInt(0)).c_str(),

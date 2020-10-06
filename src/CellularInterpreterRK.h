@@ -248,6 +248,16 @@ public:
 	 */
     virtual size_t write(uint8_t);
 
+    void logOutput(uint8_t c, bool literal = false);
+    void logOutput(const char *s, bool literal = false);
+
+
+    static const uint32_t LOG_SERIAL        = 0x00000001;
+    static const uint32_t LOG_SERIAL1       = 0x00000002;
+    static const uint32_t LOG_TRACE         = 0x00000010;
+    static const uint32_t LOG_VERBOSE       = 0x00000020; 
+    static const uint32_t LOG_LITERAL       = 0x00000040; 
+
     
     static const size_t WRITE_BUF_SIZE = 100;
     static const size_t MAX_LINES = 30;
@@ -262,6 +272,7 @@ public:
 
 
 protected:
+    uint32_t logSettings = LOG_SERIAL | LOG_TRACE;
     char     writeBuffer[WRITE_BUF_SIZE];
     size_t      writeOffset = 0;
 

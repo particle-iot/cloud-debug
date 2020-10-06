@@ -6,6 +6,7 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 // Log handler is created dynamically below
 
 #include "CloudDebug.h"
+#include "CellularInterpreterRK.h"
 #include "sourcever.h"
 
 #include <vector>
@@ -34,6 +35,7 @@ unsigned long stateTime;
 unsigned long lastConnectReport = 0;
 unsigned long cloudConnectTime = 0;
 std::vector<bool> traceStack;
+CellularInterpreter cellularInterpreter;
 
 void subscriptionHandler(const char *eventName, const char *data);
 
@@ -41,7 +43,7 @@ void setup() {
     // Configure and register log handler dynamically
 	infoHandler = new StreamLogHandler(Serial, LOG_LEVEL_INFO);
 	traceHandler = new StreamLogHandler(Serial, LOG_LEVEL_TRACE);
-	LogManager::instance()->addHandler(infoHandler);
+	//LogManager::instance()->addHandler(infoHandler);
 
     Particle.subscribe("particle/device/", subscriptionHandler, MY_DEVICES);
 	System.on(button_click, buttonHandler);
@@ -50,6 +52,8 @@ void setup() {
     // This application also works like Tinker, allowing it to be controlled from
     // the Particle mobile app. This function initializes the Particle.functions.
     tinkerSetup();
+
+	cellularInterpreter.setup();
 
     networkSetup();
 
@@ -199,7 +203,11 @@ void setup() {
 
 void loop() {
     networkLoop();
+
+	cellularInterpreter.loop();
+
 	commandParser.loop();
+
     if (stateHandler) {
         stateHandler(); 
     }
@@ -414,8 +422,9 @@ void stateIdle() {
 }
 
 void setTraceLogging(bool trace) {
-	// Log.info("%s trace logging", (trace ? "enabling" : "disabling"));
+	Log.info("%s trace logging", (trace ? "enabling" : "disabling"));
 
+/*
 	// Get log manager's instance
 	auto logManager = LogManager::instance();
 
@@ -427,6 +436,7 @@ void setTraceLogging(bool trace) {
         logManager->removeHandler(traceHandler);
 	    logManager->addHandler(infoHandler);
     }
+*/
 }
 
 void pushTraceLogging(bool trace) {

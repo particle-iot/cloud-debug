@@ -227,9 +227,15 @@ void CellularInterpreter::addUrcHandler(const char *urc, CellularInterpreterMode
 
 
 size_t CellularInterpreter::write(uint8_t c) {
-    
     // Do not add any _log.* statements in this function!
+
+    if ((logSettings & LOG_LITERAL) != 0) {
+        // Output everthing exactly as sent as if this module didn't exist at all
+        logOutput(c, true);
+    }
+
     if (loopThread && os_thread_is_current(loopThread)) {
+        logOutput(c);
         return 1;
     }
 
@@ -260,6 +266,35 @@ size_t CellularInterpreter::write(uint8_t c) {
         // Line is too long, ignore the rest 
     }
     return 1;
+}
+
+void CellularInterpreter::logOutput(uint8_t c, bool literal) {
+    if ((logSettings & LOG_LITERAL) == 0) {
+        // Literal mode is not configured
+        if (literal) {
+            return;
+        }
+    }
+    else {
+        // Literal mode is configured
+        if (!literal) {
+            // Not literal in literal mode; we already logged this
+            return;
+        }
+    }
+
+    if ((logSettings & LOG_SERIAL) != 0) {
+        Serial.write(c);
+    }
+    if ((logSettings & LOG_SERIAL1) != 0) {
+        Serial1.write(c);
+    }
+}
+
+void CellularInterpreter::logOutput(const char *s, bool literal) {
+    while(*s) {
+        logOutput(*s++, literal);
+    }
 }
 
 void CellularInterpreter::processLine(char *lineBuffer) {
@@ -346,6 +381,17 @@ void CellularInterpreter::processLine(char *lineBuffer) {
         if (col < MAX_COL_TOKENS) {
             colTokens[col] = token;
         }
+        if (col == 0) {
+            if (strcmp(token, "Socket") == 0) {
+                // Gen2: Socket 0: handle 0 has 33 bytes pending
+                if ((logSettings & LOG_VERBOSE) == 0) {
+                    // Ignore this message
+                    break;
+                }
+                // If LOG_FULL_AT_CMD are being logged, we'll output this
+                // in the col == 1 case below.
+            }
+        }
         if (col == 1) {
             if (strcmp(token, "AT") == 0) {
                 isGen3 = false;
@@ -360,6 +406,14 @@ void CellularInterpreter::processLine(char *lineBuffer) {
             }
             else {
                 // Not a statement we care about, ignore the rest of this line.
+                char *msg = &token[strlen(token) + 1];
+
+                logOutput(colTokens[0]);
+                logOutput(' ');
+                logOutput(colTokens[1]);
+                logOutput(' ');
+                logOutput(msg);
+                logOutput('\n');
                 break;
             }
         }
@@ -377,6 +431,19 @@ void CellularInterpreter::processLine(char *lineBuffer) {
             if (col == 2) {
                 char *cp;
 
+                // Rest of the line after this token is the message
+                char *msg = &token[strlen(token) + 1];
+
+                // Write to Serial and Serial1
+                logOutput(colTokens[0]);
+                logOutput(' ');
+                logOutput(colTokens[1]);
+                logOutput(' ');
+                logOutput(colTokens[2]);
+                logOutput(' ');
+                logOutput(msg);
+                logOutput('\n');
+
                 // Remove the square brackets from category
                 if (colTokens[1][0] == '[') {
                     cp = strrchr(colTokens[1], ']');
@@ -385,9 +452,6 @@ void CellularInterpreter::processLine(char *lineBuffer) {
                         *cp = 0;
                     }
                 }
-
-                // Rest of the line after this token is the message
-                char *msg = &token[strlen(token) + 1];
 
                 // Remove the : from the end of the level
                 cp = strrchr(colTokens[2], ':');
@@ -412,13 +476,32 @@ void CellularInterpreter::processLine(char *lineBuffer) {
         if (isGen3) {
             // Gen3
             if (col == 3) {
+                // 0000068021 [ncp.at] TRACE: > AT+COPS=3,2
+                // 0000068029 [ncp.at] TRACE: < OK
                 toModem = token[0] == '>';
                 command = &token[2];
+
+                // Generate debug output
+                if ((logSettings & LOG_TRACE) != 0) {
+                    logOutput(colTokens[0]);
+                    logOutput(' ');
+                    logOutput(colTokens[1]);
+                    logOutput(' ');
+                    logOutput(colTokens[2]);
+                    logOutput(' ');
+                    logOutput(colTokens[3]);
+                    logOutput(' ');
+                    logOutput(command);
+                }
             }
         }
         else {
             // Gen2
             if (col == 2) {
+                int tsWhole = atoi(String(colTokens[0]).substring(0, 6));
+                int tsDec = atoi(String(colTokens[0]).substring(7));
+                int ts = (tsWhole * 1000) + (tsDec % 1000);
+
                 toModem = strcmp(token, "send") == 0;
 
                 char *src = strchr(&token[strlen(token) + 1], '"');
@@ -447,6 +530,17 @@ void CellularInterpreter::processLine(char *lineBuffer) {
                             // Copy character
                             *dst++ = *src;
                         }
+                    }
+
+                    // Truncate command to a reasonable length
+                    if (strlen(command) > 50) {
+                        command[50] = 0;
+                    }
+
+                    // Generate debug output
+                    if ((logSettings & LOG_TRACE) != 0) {
+                        String msg = String::format("%010d [ncp.at] TRACE: %s %s\n", ts, (toModem ? ">" : "<"), command);
+                        logOutput(msg);
                     }
                 }
             }
