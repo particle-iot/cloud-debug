@@ -33,6 +33,7 @@ void runTowerTest();
 
 CellularHelperEnvironmentResponseStatic<32> envResp;
 static bool modemInfoReported = false;
+CellularHelp cellularHelp;
 
 void networkSetup() {
 
@@ -40,7 +41,7 @@ void networkSetup() {
 
 
 	// Add CellularHelp functions to CellularInterpreter
-	CellularHelp::check();
+	cellularHelp.setup();
 
 	commandParser.addCommandHandler("tower", "report cell tower information", [](SerialCommandParserBase *) {
 		runTowerTest();
@@ -203,6 +204,7 @@ void networkSetup() {
 }
 
 void networkLoop() {
+	cellularHelp.loop();
 }
 
 void stateStartNetworkTest() {

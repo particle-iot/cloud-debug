@@ -2,6 +2,7 @@
 #include "CellularInterpreterRK.h"
 #include "CarrierLookupRK.h"
 
+#include "CloudDebug.h" // for elapsedString(), probably should move 
 
 static Logger _log("app.help");
 
@@ -105,7 +106,7 @@ void CellularHelp::setup() {
     CellularInterpreter::getInstance()->addModemMonitor(
             "CREG|CGREG|CEREG", 
             CellularInterpreterModemMonitor::REASON_SEND | CellularInterpreterModemMonitor::REASON_PLUS | CellularInterpreterModemMonitor::REASON_URC,
-            [](uint32_t reason, const char *cmd, CellularInterpreterModemMonitor *mon) {
+            [this](uint32_t reason, const char *cmd, CellularInterpreterModemMonitor *mon) {
         // 
         CellularInterpreterParser parser;
         parser.parse(cmd);
@@ -145,17 +146,31 @@ void CellularHelp::setup() {
 
         int stat = parser.getArgInt(statArg);
 
+        if (stat == 2 && networkRegStartTime == 0) {
+            // Searching, not start time
+            networkRegStartTime = System.millis();
+        }
+
         String statStr = CellularInterpreter::mapValueToString(_cregStatMapping, stat);
 
         _log.info("%s Status: %s", regType.c_str(), statStr.c_str());
 
         if (stat == 1 || stat == 5) {
             if (parser.getNumArgs() >= (statArg + 4)) {
-                _log.info("Tracking area code: %s", parser.getArgString(statArg +1).c_str());
-                _log.info("Cell identifier: %s", parser.getArgString(statArg + 2).c_str());
+                _log.info("  Tracking area code: %s", parser.getArgString(statArg +1).c_str());
+                _log.info("  Cell identifier: %s", parser.getArgString(statArg + 2).c_str());
                 int act = parser.getArgInt(statArg + 3);
                 String actStr = CellularInterpreter::mapValueToString(_cregActMapping, act); 
-                _log.info("Access technology: %s", actStr.c_str());
+                _log.info("  Access technology: %s", actStr.c_str());
+
+                if (mon->command.equals("CREG")) {
+                    // Network only
+                    networkRegTime = System.millis();
+                }
+                else {
+                    // CEREG or CGREG (GPRS)
+                    grpsRegTime = System.millis();
+                }
             }
         }
     });
@@ -373,11 +388,27 @@ void CellularHelp::setup() {
 
 }
 
-// [static]
-CellularHelp *CellularHelp::check() {
-    CellularHelp *obj = new CellularHelp();
-    if (obj) {
-        obj->setup();
+void CellularHelp::loop() {
+    if ((networkRegTime != 0) && (grpsRegTime == 0) &&
+        (networkRegTime < (System.millis() - 15000))) {
+        // We have network registration (CREG) but not GPRS (CEREG/CGREG), most likely a deactivated SIM
+        if (System.millis() > deactivatedSimNextReport) {
+            deactivatedSimNextReport = System.millis() + 60000;
+            _log.info("Network registered but not GPRS, may be a deactivated SIM");
+        }
     }
-    return obj;
+
+    if ((networkRegStartTime != 0) && (networkRegTime == 0) && (grpsRegTime == 0) &&
+        ((System.millis() - networkRegStartTime) >= 60000)) {
+        // Searching for network for more than a minute
+        if (System.millis() > noServiceNextReport) {
+            noServiceNextReport = System.millis() + 60000;
+            _log.info("No compatible carriers found (searching for %s)", elapsedString((System.millis() - networkRegStartTime) / 1000).c_str());
+        }
+
+    }
+
+
+
 }
+    

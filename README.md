@@ -417,7 +417,7 @@ particle compile boron . --target 2.0.0-rc.2 --saveTo boron.bin
 
 ## Handy New Features
 
-If you've used the previous versions of Electron Cloud Debug, Photon Cloud Debug, or Boron Cloud Debug, there are a bunch of new features that make troubleshooting more productive.
+If you've used the previous versions of [Electron Cloud Debug](https://github.com/rickkas7/electron-clouddebug), [Photon Cloud Debug](https://github.com/rickkas7/photon-clouddebug), or [Boron Cloud Debug](https://github.com/rickkas7/boron-clouddebug), there are a bunch of new features that make troubleshooting more productive.
 
 More information about versions is now displayed:
 
@@ -567,9 +567,9 @@ Socket 1: handle 1 has 0 bytes pending
 
 ## Version History
 
-### 1.5.1 (2020-09-28)
+### 1.5.1 (2020-10-07)
 
-- Initial version
+- Initial preview/testing version
 
 
 
