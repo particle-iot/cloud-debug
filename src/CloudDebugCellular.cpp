@@ -226,15 +226,13 @@ void stateCellularWaitModemOn() {
 		return;
 	}
 
-	reportNonModemInfo();
+	pushTraceLogging(false);
 
-	// 
+	reportNonModemInfo();
 	reportModemInfo();
 
-	if (!traceManuallySet) {
-		showTrace = true;
-		setTraceLogging(true);
-	}
+	popTraceLogging();
+
 
 	Cellular.connect();
 

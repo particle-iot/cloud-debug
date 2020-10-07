@@ -21,12 +21,9 @@ void stateStartTest();
 
 SerialCommandEditor<1000, 256, 16> commandParser;
 
-StreamLogHandler *infoHandler;
-StreamLogHandler *traceHandler;
-
 const std::chrono::milliseconds autoStartScanTime = 15s;
 
-bool showTrace = false;
+bool showTrace = true;
 bool traceManuallySet = false;
 bool buttonClicked = false;
 bool startTest = false;
@@ -40,11 +37,6 @@ CellularInterpreter cellularInterpreter;
 void subscriptionHandler(const char *eventName, const char *data);
 
 void setup() {
-    // Configure and register log handler dynamically
-	infoHandler = new StreamLogHandler(Serial, LOG_LEVEL_INFO);
-	traceHandler = new StreamLogHandler(Serial, LOG_LEVEL_TRACE);
-	//LogManager::instance()->addHandler(infoHandler);
-
     Particle.subscribe("particle/device/", subscriptionHandler, MY_DEVICES);
 	System.on(button_click, buttonHandler);
 
@@ -119,8 +111,6 @@ void setup() {
 
 	commandParser.addCommandHandler("trace", "enable or disable trace logging", [](SerialCommandParserBase *) {
         CommandParsingState *cps = commandParser.getParsingState();
-
-		String apn, user, pass;
 		
 		if (cps->getByShortOpt('e')) {
 		    commandParser.printMessageNoPrompt("enabling trace mode");
@@ -144,6 +134,38 @@ void setup() {
     .addCommandOption('e', "enable", "enable trace logging")
     .addCommandOption('d', "disable", "disable trace logging");
         
+	commandParser.addCommandHandler("literal", "enable or disable literal (non-filtered) logging", [](SerialCommandParserBase *) {
+        CommandParsingState *cps = commandParser.getParsingState();
+		
+        bool literal = (CellularInterpreter::getInstance()->getLogSettings() & CellularInterpreter::LOG_LITERAL) != 0;
+
+		if (cps->getByShortOpt('e')) {
+		    commandParser.printMessageNoPrompt("enabling literal mode");
+            literal = true;
+        }        
+        else
+		if (cps->getByShortOpt('d')) {
+		    commandParser.printMessageNoPrompt("disabling literal mode");
+            literal = false;
+        }        
+        else {
+            // Toggle with no options
+            literal = !literal;
+		    commandParser.printMessageNoPrompt("literal mode %s", literal ? "enabled" : "disabled");
+        }
+
+        if (literal) {
+            CellularInterpreter::getInstance()->updateLogSettings(~0, CellularInterpreter::LOG_LITERAL);
+        }
+        else {
+            CellularInterpreter::getInstance()->updateLogSettings(~CellularInterpreter::LOG_LITERAL, 0);
+        }
+
+		commandParser.printMessagePrompt();
+	})
+    .addCommandOption('e', "enable", "enable trace logging")
+    .addCommandOption('d', "disable", "disable trace logging");
+
 
 #if 0
     // This does not currently work, not sure why
@@ -422,25 +444,20 @@ void stateIdle() {
 }
 
 void setTraceLogging(bool trace) {
-	Log.info("%s trace logging", (trace ? "enabling" : "disabling"));
-
-/*
-	// Get log manager's instance
-	auto logManager = LogManager::instance();
+	// Log.info("%s trace logging", (trace ? "enabling" : "disabling"));
 
     if (trace) {
-        logManager->removeHandler(infoHandler);
-	    logManager->addHandler(traceHandler);
+        CellularInterpreter::getInstance()->updateLogSettings(~0, CellularInterpreter::LOG_TRACE);
     }
     else {
-        logManager->removeHandler(traceHandler);
-	    logManager->addHandler(infoHandler);
+        CellularInterpreter::getInstance()->updateLogSettings(~CellularInterpreter::LOG_TRACE, 0);
     }
-*/
 }
 
 void pushTraceLogging(bool trace) {
-    traceStack.push_back(showTrace);
+    bool curTrace = (CellularInterpreter::getInstance()->getLogSettings() & CellularInterpreter::LOG_TRACE) != 0;
+
+    traceStack.push_back(curTrace);
     setTraceLogging(trace);
 }
 

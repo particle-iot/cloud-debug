@@ -66,6 +66,19 @@ static const char _umnoProfMapping[] =
     "101: European (no ePCO)\n"
     "198: AT&T (no band 5)\n";
 
+static const char _cfunMapping[] = 
+    "0: minimum functionality\n"
+    "1: full functionality\n"
+    "4: airplane\n"
+    "15: silent reset\n"
+    "16: silent reset plus SIM\n"
+    "19: minimum functionality, deactivate SIM\n"
+    "127: deep sleep\n";
+
+static const char _cfunResetMapping[] = 
+    "0: do not reset before setting fun\n"
+    "1: silent reset plus SIM before setting fun\n";
+
 CellularHelp::CellularHelp() {
 }
 
@@ -77,12 +90,31 @@ void CellularHelp::setup() {
 
     CellularInterpreter::getInstance()->addModemMonitor(
             "CREG|CGREG|CEREG", 
-            CellularInterpreterModemMonitor::REASON_PLUS | CellularInterpreterModemMonitor::REASON_URC,
+            CellularInterpreterModemMonitor::REASON_SEND | CellularInterpreterModemMonitor::REASON_PLUS | CellularInterpreterModemMonitor::REASON_URC,
             [](uint32_t reason, const char *cmd, CellularInterpreterModemMonitor *mon) {
         // 
         CellularInterpreterParser parser;
         parser.parse(cmd);
         
+        String regType;
+        if (mon->command.equals("CREG")) {
+            regType = "Network registration (CREG)";
+        }
+        else
+        if (mon->command.equals("CGREG")) {
+            regType = "GPRS network (CGREG)";
+        }
+        if (mon->command.equals("CEREG")) {
+            regType = "EPS network (CEREG)";
+        }
+
+        if ((reason & CellularInterpreterModemMonitor::REASON_SEND) != 0) {
+            _log.info("%s Set to %s", 
+                regType.c_str(), 
+                CellularInterpreter::mapValueToString(_cregnMapping, parser.getArgInt(0)).c_str());
+            return;
+        }
+
         size_t statArg;
         
         if ((reason & CellularInterpreterModemMonitor::REASON_PLUS) != 0) {
@@ -97,18 +129,6 @@ void CellularHelp::setup() {
             statArg = 0;
         }
 
-        String regType;
-        if (mon->command.equals("CREG")) {
-            regType = "Network registration (CREG)";
-        }
-        else
-        if (mon->command.equals("CGREG")) {
-            regType = "GPRS network (CGREG)";
-        }
-        if (mon->command.equals("CEREG")) {
-            regType = "EPS network (CEREG)";
-        }
-
         int stat = parser.getArgInt(statArg);
 
         String statStr = CellularInterpreter::mapValueToString(_cregStatMapping, stat);
@@ -121,7 +141,7 @@ void CellularHelp::setup() {
                 _log.info("Cell identifier: %s", parser.getArgString(statArg + 2).c_str());
                 int act = parser.getArgInt(statArg + 3);
                 String actStr = CellularInterpreter::mapValueToString(_cregActMapping, act); 
-                _log.info("Access techology: %s", actStr.c_str());
+                _log.info("Access technology: %s", actStr.c_str());
             }
         }
     });
@@ -138,7 +158,7 @@ void CellularHelp::setup() {
             // Request
             // _log.info("COPS SEND: %s", cmd);
             if (parser.isSet()) {
-                _log.info("Operation Selection Set: mode=%s format=%s",
+                _log.info("Operator Selection (COPS) Set: mode=%s format=%s",
                     CellularInterpreter::mapValueToString(_copsModeMapping, parser.getArgInt(0)).c_str(),
                     CellularInterpreter::mapValueToString(_copsFormatMapping, parser.getArgInt(1)).c_str());
             }
@@ -147,7 +167,7 @@ void CellularHelp::setup() {
             // Response
             if (mon->request.isRead()) {
                 if (parser.getNumArgs() >= 1) {
-                    _log.info("Operation Selection Read: mode=%s",
+                    _log.info("Operator Selection (COPS) Read: mode=%s",
                         CellularInterpreter::mapValueToString(_copsModeMapping, parser.getArgInt(0)).c_str());
                 }
                 if (parser.getNumArgs() >= 2) {
@@ -164,7 +184,8 @@ void CellularHelp::setup() {
                         int mnc = atoi(oper.substring(3));
 
                         String carrier = lookupMccMnc((uint16_t) mcc, (uint16_t) mnc);
-                        _log.info("  oper=%s %s", oper.c_str(), carrier.c_str());
+                        String country = lookupCountry((uint16_t) mcc);
+                        _log.info("  oper=%s carrier=%s country=%s", oper.c_str(), carrier.c_str(), country.c_str());
                     }
                     else {
                         _log.info("  oper=%s", oper.c_str());
@@ -196,6 +217,36 @@ void CellularHelp::setup() {
     });
 
 
+    CellularInterpreter::getInstance()->addModemMonitor(
+            "CGDCONT", 
+            CellularInterpreterModemMonitor::REASON_SEND,
+            [](uint32_t reason, const char *cmd, CellularInterpreterModemMonitor *mon) {
+        // 
+        CellularInterpreterParser parser;
+        parser.parse(cmd);
+
+        int cid = parser.getArgInt(0);
+
+        _log.info("PDP context definition (CGDCONT): cid=%d pdpType=%s APN=%s", 
+            cid, parser.getArgString(1).c_str(), parser.getArgString(2).c_str());
+
+    });
+
+    CellularInterpreter::getInstance()->addModemMonitor(
+            "CFUN", 
+            CellularInterpreterModemMonitor::REASON_SEND,
+            [](uint32_t reason, const char *cmd, CellularInterpreterModemMonitor *mon) {
+        // 
+        CellularInterpreterParser parser;
+        parser.parse(cmd);
+
+        _log.info("Set module functionality (CFUN): %s", 
+            CellularInterpreter::mapValueToString(_cfunMapping, parser.getArgInt(0)).c_str());
+        if (parser.getNumArgs() > 1) {
+            _log.info("  Reset Mode: %s", 
+                CellularInterpreter::mapValueToString(_cfunResetMapping, parser.getArgInt(1)).c_str());
+        }
+    });
     
 }
 

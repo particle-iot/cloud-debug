@@ -415,6 +415,121 @@ cd cloud-debug
 particle compile boron . --target 2.0.0-rc.2 --saveTo boron.bin
 ```
 
+## Handy New Features
+
+If you've used the previous versions of Electron Cloud Debug, Photon Cloud Debug, or Boron Cloud Debug, there are a bunch of new features that make troubleshooting more productive.
+
+More information about versions is now displayed:
+
+```
+0000015479 [app] INFO: Platform: Boron
+0000015479 [app] INFO: Binary compiled for: 1.5.2
+0000015480 [app] INFO: Cloud Debug Release 1.5.1
+0000015480 [app] INFO: System version: 2.0.0-rc.2
+0000015481 [app] INFO: Device ID: e00fce6ffffffffe7d5cd238
+```
+
+Power source and battery information is displayed (when available):
+
+```
+0000015340 [app] INFO: Power source: USB Host
+0000015342 [app] INFO: Battery state: charged, SoC: 77.48
+```
+
+On devices with a bq24195 PMIC (Electron, E Series, Boron, Tracker SoM), some common settings are displayed now:
+
+```
+0000023359 [app] INFO: PMIC inputVoltageLimit: 3880 mV
+0000023360 [app] INFO: PMIC inputCurrentLimit: 500 mA
+0000023361 [app] INFO: PMIC minimumSystemVoltage: 3500 mV
+0000023362 [app] INFO: PMIC chargeCurrentValue: 896 mA
+0000023362 [app] INFO: PMIC chargeVoltageValue: 4112 mV
+```
+
+Several commands are now decoded and helpful information is shown as [app.help] messages:
+
+```
+0000034916 [ncp.at] TRACE: > AT+UMNOPROF?
+0000034923 [ncp.at] TRACE: < +UMNOPROF: 2
+0000038600 [app.help] INFO: Mobile Network Operator Profile (UMNOPROF): AT&T (2)
+```
+
+```
+0000026000 [ncp.at] TRACE: > AT+CREG?
+0000026000 [ncp.at] TRACE: < +CREG: 2,5,"2CF7","8AFFF6F",6
+0000026493 [app.help] INFO: Network registration (CREG) Status: registered, roaming (5)
+0000026494 [app.help] INFO: Tracking area code: 2CF7
+0000026494 [app.help] INFO: Cell identifier: 8AFFF6F
+0000026495 [app.help] INFO: Access technology: GSM + HSDPA & USUPA (6)
+0000026000 [ncp.at] TRACE: < OK
+```
+
+Operator codes (MCC/MNC) are decoded world-wide. The database is in the cloud debug firmware so it works without cellular and on all modems.
+
+```
+0000044000 [ncp.at] TRACE: > AT+COPS?
+0000044000 [ncp.at] TRACE: < +COPS: 0,2,"310410",2
+0000044254 [app.help] INFO: Operator Selection (COPS) Read: mode=automatic (0)
+0000044255 [app.help] INFO:   format=numeric (2)
+0000044257 [app.help] INFO:   oper=310410 carrier=AT&T Wireless Inc. country=United States
+```
+
+Information about the carrier is periodically displayed for cellular devices:
+
+```
+0000148297 [app] INFO: Cellular Info: cid=14ffff519 lac=11511 mcc=310 mnc=410
+0000148298 [app] INFO: Carrier: AT&T Wireless Inc. Country: United States
+0000148349 [app] INFO: Strength: 34.4, Quality: 75.5, RAT: 3G
+0000148349 [app] INFO: Power source: USB Host
+0000148350 [app] INFO: Battery state: charged, SoC: 100.00
+```
+
+It shows the technology, general frequency (700, 850, 900, etc.), and band number for LTE:
+
+```
+0000247585 [app] INFO: Technology: LTE Cat M1, Band: LTE 700 (B12)
+```
+
+And the same (but no band number) for 2G/3G:
+
+```
+0000030026 [app] INFO: Technology: 3G, Band: UMTS 850
+```
+
+It keeps track of how long connecting to cellular and connecting to the cloud take:
+
+```
+0000224665 [app] INFO: Still trying to connect to cellular 03:11
+```
+
+```
+0001557289 [system] INFO: Cloud: disconnected
+0001557290 [app] INFO: Lost cloud connection after 25:27
+```
+
+It can detect if Ethernet is present:
+
+```
+0000015342 [app] INFO: This device could have Ethernet (is 3rd generation)
+0000015344 [app] INFO: FEATURE_ETHERNET_DETECTION not enabled, so Ethernet will not be used (even if present)
+```
+
+On the Electron and E Series the extraordinarily verbose logs are now tamed and look like the Gen 3 logs with just the essential command and response information. If you really want the old behavior back, the `literal -e` (enable) cloud debug command will turn on the old, completely unfiltered behavior. 
+
+```
+    42.009 AT send      36 "AT+USOST=1,\"3.210.194.186\",5684,33\r\n"
+    42.017 AT read  >    3 "\r\n@"
+    42.017 AT send      33 "\x17\xfe\xfd\x00\x01\x00\x00\x00\x00\x00\r\x00\x14\x00\x01\x00\x00\x00\x00\x00\r\xb9P\xae\xb2\xa3\x8b\x93|N\a\x94u"
+    42.153 AT read  +   16 "\r\n+USOST: 1,33\r\n"
+    42.154 AT read OK    6 "\r\nOK\r\n"
+    42.154 AT send       4 "AT\r\n"
+    42.157 AT read OK    6 "\r\nOK\r\n"
+    42.157 AT send      14 "AT+USORF=1,0\r\n"
+    42.164 AT read  +   15 "\r\n+USORF: 1,0\r\n"
+Socket 1: handle 1 has 0 bytes pending
+    42.167 AT read OK    6 "\r\nOK\r\n"
+```
+
 
 ## Version History
 

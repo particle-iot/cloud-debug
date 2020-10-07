@@ -156,7 +156,7 @@ public:
 
 protected:
     // Input parameters
-    unsigned long beforeOffMs = 1000;
+    unsigned long beforeOffMs = 2000;
     unsigned long onPeriodMs = 250;
     unsigned long offPeriodMs = 750;
     size_t blinks = 1;
@@ -190,17 +190,18 @@ protected:
     static CellularInterpreterBlinkManager *instance;
 };
 
-class CellularInterpreterLogEntry {
+class CellularInterpreterQueueEntry {
 public:
+    enum class EntryType {
+        UNKNOWN,
+        LOG_ENTRY,
+        MODEM_ENTRY
+    };
+    EntryType entryType = EntryType::UNKNOWN;
     long ts;
     String category;
     String level;
     String message;
-};
-
-class CellularInterpreterCommandEntry {
-public:
-    String command;
     bool toModem;
 };
 
@@ -233,13 +234,17 @@ public:
 
     void processLine(char *lineBuffer);
 
-    void processCommand(const char *command, bool toModem);
+    bool includeCommandInLog(const char *cmd) const;
+
+    void logCommand(CellularInterpreterQueueEntry *entry);
+
+    void processCommand(CellularInterpreterQueueEntry *entry);
 
     void callCommandMonitors(uint32_t reasonFlags, const char *command);
 
     void processTimeouts();
 
-    void processLog(long ts, const char *category, const char *level, const char *msg);
+    void processLog(CellularInterpreterQueueEntry *entry);
 
     /**
 	 * @brief Virtual override for the StreamLogHandler to write data to the log
@@ -248,9 +253,11 @@ public:
 	 */
     virtual size_t write(uint8_t);
 
-    void logOutput(uint8_t c, bool literal = false);
-    void logOutput(const char *s, bool literal = false);
-
+    void logOutput(uint8_t c);
+    void logOutput(const char *s);
+    
+    uint32_t getLogSettings() const { return logSettings; };
+    uint32_t updateLogSettings(uint32_t andMask, uint32_t orMask);
 
     static const uint32_t LOG_SERIAL        = 0x00000001;
     static const uint32_t LOG_SERIAL1       = 0x00000002;
@@ -280,8 +287,7 @@ protected:
     bool        ignoreNextSend = false;
     String lastCommand;
 
-    std::deque<CellularInterpreterCommandEntry *> commandQueue;
-    std::deque<CellularInterpreterLogEntry *> logQueue;
+    std::deque<CellularInterpreterQueueEntry *> queue;
     
 
     std::vector<CellularInterpreterModemMonitor *> commandMonitors;

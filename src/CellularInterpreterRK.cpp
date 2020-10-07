@@ -127,24 +127,21 @@ void CellularInterpreter::loop() {
     // generating logs
     loopThread = os_thread_current(NULL);
 	
-    while(!logQueue.empty()) {
-        CellularInterpreterLogEntry *entry = logQueue.front();
-        logQueue.pop_front();
+    while(!queue.empty()) {
+        CellularInterpreterQueueEntry *entry = queue.front();
+        queue.pop_front();
 
-        processLog(entry->ts, entry->category, entry->level, entry->message);
-
-        delete entry;
-    }
-
-    while(!commandQueue.empty()) {
-        CellularInterpreterCommandEntry *entry = commandQueue.front();
-        commandQueue.pop_front();
-
-        processCommand(entry->command, entry->toModem);
+        if (entry->entryType == CellularInterpreterQueueEntry::EntryType::LOG_ENTRY) {
+            processLog(entry); 
+        }
+        else 
+        if (entry->entryType == CellularInterpreterQueueEntry::EntryType::MODEM_ENTRY) {
+            processCommand(entry);
+        }
 
         delete entry;
     }
-
+    
     processTimeouts();
 
     loopThread = NULL;
@@ -231,11 +228,13 @@ size_t CellularInterpreter::write(uint8_t c) {
 
     if ((logSettings & LOG_LITERAL) != 0) {
         // Output everthing exactly as sent as if this module didn't exist at all
-        logOutput(c, true);
+        logOutput(c);
     }
 
     if (loopThread && os_thread_is_current(loopThread)) {
-        logOutput(c);
+        if ((logSettings & LOG_LITERAL) == 0) {
+            logOutput(c);
+        }
         return 1;
     }
 
@@ -268,21 +267,7 @@ size_t CellularInterpreter::write(uint8_t c) {
     return 1;
 }
 
-void CellularInterpreter::logOutput(uint8_t c, bool literal) {
-    if ((logSettings & LOG_LITERAL) == 0) {
-        // Literal mode is not configured
-        if (literal) {
-            return;
-        }
-    }
-    else {
-        // Literal mode is configured
-        if (!literal) {
-            // Not literal in literal mode; we already logged this
-            return;
-        }
-    }
-
+void CellularInterpreter::logOutput(uint8_t c) {
     if ((logSettings & LOG_SERIAL) != 0) {
         Serial.write(c);
     }
@@ -291,11 +276,20 @@ void CellularInterpreter::logOutput(uint8_t c, bool literal) {
     }
 }
 
-void CellularInterpreter::logOutput(const char *s, bool literal) {
+void CellularInterpreter::logOutput(const char *s) {
     while(*s) {
-        logOutput(*s++, literal);
+        logOutput(*s++);
     }
 }
+
+uint32_t CellularInterpreter::updateLogSettings(uint32_t andMask, uint32_t orMask) {
+    logSettings &= andMask;
+    logSettings |= orMask;
+
+    return logSettings;
+}
+
+
 
 void CellularInterpreter::processLine(char *lineBuffer) {
     // Process the (possibly partial) line in lineBuffer. It's a c-string, always null
@@ -369,12 +363,14 @@ void CellularInterpreter::processLine(char *lineBuffer) {
 
     const size_t MAX_COL_TOKENS = 4;
     char *colTokens[MAX_COL_TOKENS];
+    char *msg;
 
     bool isGen3 = false;
     bool isLogger = false;
-    bool toModem = false;
-    char *command = NULL;
+    long ts = 0;
     char *saveptr; 
+
+    CellularInterpreterQueueEntry *entry = NULL;
 
     char *token = strtok_r(lineBuffer, " ", &saveptr);
     for(size_t col = 0; token; col++) {
@@ -408,41 +404,25 @@ void CellularInterpreter::processLine(char *lineBuffer) {
                 // Not a statement we care about, ignore the rest of this line.
                 char *msg = &token[strlen(token) + 1];
 
-                logOutput(colTokens[0]);
-                logOutput(' ');
-                logOutput(colTokens[1]);
-                logOutput(' ');
-                logOutput(msg);
-                logOutput('\n');
+                if ((logSettings & LOG_LITERAL) == 0) {
+                    logOutput(colTokens[0]);
+                    logOutput(' ');
+                    logOutput(colTokens[1]);
+                    logOutput(' ');
+                    logOutput(msg);
+                    logOutput('\n');
+                }
                 break;
             }
         }
 
-        if (isLogger) {
-            // Non-modem logging messages:
-            // 0000011877 [hal] ERROR: Failed to power off modem
-            // 0000011878 [hal] TRACE: Modem already on
-            // 0000011879 [hal] TRACE: Setting UART voltage translator state 1
-
-            // 0: Timestamp
-            // 1: Category ([hal], [app], etc.)
-            // 2: Level (TRACE, INFO, ERROR etc.)
-            // 3: rest of the message
+        if (isLogger || isGen3) {
             if (col == 2) {
+                // Clean up category and level
                 char *cp;
-
+                
                 // Rest of the line after this token is the message
-                char *msg = &token[strlen(token) + 1];
-
-                // Write to Serial and Serial1
-                logOutput(colTokens[0]);
-                logOutput(' ');
-                logOutput(colTokens[1]);
-                logOutput(' ');
-                logOutput(colTokens[2]);
-                logOutput(' ');
-                logOutput(msg);
-                logOutput('\n');
+                msg = &token[strlen(token) + 1];
 
                 // Remove the square brackets from category
                 if (colTokens[1][0] == '[') {
@@ -458,17 +438,32 @@ void CellularInterpreter::processLine(char *lineBuffer) {
                 if (cp) {
                     *cp = 0;
                 }
-            
+
                 char *end;
-                long ts = strtol(colTokens[0], &end, 10);
+                ts = strtol(colTokens[0], &end, 10);
+            }
+        }
+
+        if (isLogger) {
+            // Non-modem logging messages:
+            // 0000011877 [hal] ERROR: Failed to power off modem
+            // 0000011878 [hal] TRACE: Modem already on
+            // 0000011879 [hal] TRACE: Setting UART voltage translator state 1
+
+            // 0: Timestamp
+            // 1: Category ([hal], [app], etc.)
+            // 2: Level (TRACE, INFO, ERROR etc.)
+            // 3: rest of the message
+            if (col == 2) {
 
                 // _log.info("logger found 0:%s 1:%s 2:%s msg:%s", colTokens[0], colTokens[1], colTokens[2], msg);
-                CellularInterpreterLogEntry *entry = new CellularInterpreterLogEntry();
+                entry = new CellularInterpreterQueueEntry();
+                entry->entryType = CellularInterpreterQueueEntry::EntryType::LOG_ENTRY;
+
                 entry->ts = ts;
                 entry->category = colTokens[1];
                 entry->level = colTokens[2];
                 entry->message = msg;
-                logQueue.push_back(entry);
                 break;
             }
         }
@@ -478,36 +473,37 @@ void CellularInterpreter::processLine(char *lineBuffer) {
             if (col == 3) {
                 // 0000068021 [ncp.at] TRACE: > AT+COPS=3,2
                 // 0000068029 [ncp.at] TRACE: < OK
-                toModem = token[0] == '>';
-                command = &token[2];
 
-                // Generate debug output
-                if ((logSettings & LOG_TRACE) != 0) {
-                    logOutput(colTokens[0]);
-                    logOutput(' ');
-                    logOutput(colTokens[1]);
-                    logOutput(' ');
-                    logOutput(colTokens[2]);
-                    logOutput(' ');
-                    logOutput(colTokens[3]);
-                    logOutput(' ');
-                    logOutput(command);
-                }
+                entry = new CellularInterpreterQueueEntry();
+                entry->entryType = CellularInterpreterQueueEntry::EntryType::MODEM_ENTRY;
+
+                entry->ts = ts;
+                entry->category = colTokens[1];
+                entry->level = colTokens[2];
+
+                entry->toModem = token[0] == '>';
+                entry->message = &token[2];
             }
         }
         else {
             // Gen2
             if (col == 2) {
+                entry = new CellularInterpreterQueueEntry();
+                entry->entryType = CellularInterpreterQueueEntry::EntryType::MODEM_ENTRY;
+                entry->toModem = strcmp(token, "send") == 0;
+
+                //_log.info("whole=%s dec=%s",String(colTokens[0]).substring(0, 6).c_str(), String(colTokens[0]).substring(7).c_str() );
+
                 int tsWhole = atoi(String(colTokens[0]).substring(0, 6));
                 int tsDec = atoi(String(colTokens[0]).substring(7));
-                int ts = (tsWhole * 1000) + (tsDec % 1000);
-
-                toModem = strcmp(token, "send") == 0;
+                entry->ts = (long) (tsWhole * 1000) + (tsDec % 1000);
+                entry->category = "ncp.at";
+                entry->level = "TRACE";
 
                 char *src = strchr(&token[strlen(token) + 1], '"');
                 if (src) {
                     // Command begins after the first double quote
-                    command = ++src;
+                    const char *command = ++src;
 
                     // Unescape backslash escapes, remove \r and \n, and end at the unescaped double quote
                     for(char *dst = src; *src; src++) {
@@ -532,61 +528,69 @@ void CellularInterpreter::processLine(char *lineBuffer) {
                         }
                     }
 
-                    // Truncate command to a reasonable length
-                    if (strlen(command) > 50) {
-                        command[50] = 0;
-                    }
+                    // Truncate command to a reasonable length?
 
-                    // Generate debug output
-                    if ((logSettings & LOG_TRACE) != 0) {
-                        String msg = String::format("%010d [ncp.at] TRACE: %s %s\n", ts, (toModem ? ">" : "<"), command);
-                        logOutput(msg);
-                    }
+                    entry->message = command;
                 }
             }
-        }
-
-        if (command) {
-            // We have a parsed command, Gen 2 or Gen 3
-            // Direction is in toModem (true = to modem, false = from modem)
-            // + response and OK/ERROR are issued in separate lines, so there needs to be additional 
-            // surrounding state
-            CellularInterpreterCommandEntry *entry = new CellularInterpreterCommandEntry();
-            entry->command = command;
-            entry->toModem = toModem;
-            commandQueue.push_back(entry); 
-            break;
         }
             
         token = strtok_r(NULL, " ", &saveptr);
     }
 
+    if (entry) {
+        queue.push_back(entry); 
+    }
+
 }
 
-void CellularInterpreter::processCommand(const char *command, bool toModem) {
+void CellularInterpreter::logCommand(CellularInterpreterQueueEntry *entry) {
+    if (((logSettings & LOG_LITERAL) == 0) && ((logSettings & LOG_TRACE) != 0)) {
+        String msg = String::format("%010ld [%s] %s: %s %s\n", entry->ts, entry->category.c_str(), entry->level.c_str(), (entry->toModem ? ">" : "<"), entry->message.c_str());
+        logOutput(msg);
+    }
+}
+
+bool CellularInterpreter::includeCommandInLog(const char *cmd) const {
+    if ((logSettings & LOG_VERBOSE) == 0) {
+        return !isMatchingCommand(cmd, "UUSORD") && !isMatchingCommand(cmd, "USORF") && !isMatchingCommand(cmd, "UUSORF") && !isMatchingCommand(cmd, "USOST");
+    }
+    else {
+        // Show all commands in verbose
+        return true;
+    }
+}
+
+void CellularInterpreter::processCommand(CellularInterpreterQueueEntry *entry) {
+
     // Note start of new command, + responses, OK/ERROR responses, and URCs here
-    // _log.info("processCommand command=%s toModem=%d", command, toModem);
-    if (toModem) {
+    
+    if (entry->toModem) {
         // Sending to modem
         if (ignoreNextSend) {
             // On Gen2, sending binary data with AT+USOST or AT+USOWR, see "@" below
             ignoreNextSend = false;
             return;
         }
-        // _log.info("send command %s", command);        
-        callCommandMonitors(CellularInterpreterModemMonitor::REASON_SEND, command); 
-        lastCommand = command;
+        // _log.info("send command %s", command);      
+        if (includeCommandInLog(entry->message)) {
+            logCommand(entry);  
+        }
+        callCommandMonitors(CellularInterpreterModemMonitor::REASON_SEND, entry->message); 
+        lastCommand = entry->message;
     }
     else {
         // Receiving data from modem
-        if (command[0] == '+') {
+        if (entry->message.charAt(0) == '+') {
             // + response to a command, or a URC
             // _log.info("recv + or URC %s", command);        
-
-            callCommandMonitors(CellularInterpreterModemMonitor::REASON_PLUS, command); 
+            if (includeCommandInLog(lastCommand) && includeCommandInLog(entry->message)) {
+                logCommand(entry);  
+            }
+            callCommandMonitors(CellularInterpreterModemMonitor::REASON_PLUS, entry->message); 
         }
         else 
-        if (strcmp(command, "@") == 0) {
+        if (strcmp(entry->message, "@") == 0) {
             // On Gen2, sending binary data with AT+USOST or AT+USOWR
 
             // Example with write binary data after @ response (AT+USOST, AT+USOWR)
@@ -597,14 +601,20 @@ void CellularInterpreter::processCommand(const char *command, bool toModem) {
             ignoreNextSend = true;
         }
         else 
-        if (strcmp(command, "OK") == 0) {
+        if (strcmp(entry->message, "OK") == 0) {
             // _log.info("recv OK lastCommand=%s", lastCommand.c_str());        
+            if (includeCommandInLog(lastCommand)) {
+                logCommand(entry);  
+            }
             callCommandMonitors(CellularInterpreterModemMonitor::REASON_OK, lastCommand); 
             lastCommand = "";
         }
         else 
-        if (strncmp(command, "ERROR", 5) == 0) {
+        if (strncmp(entry->message, "ERROR", 5) == 0) {
             // _log.info("recv ERROR lastCommand=%s", lastCommand.c_str());       
+            if (includeCommandInLog(lastCommand)) {
+                logCommand(entry);  
+            }
             callCommandMonitors(CellularInterpreterModemMonitor::REASON_ERROR, lastCommand); 
             lastCommand = "";
         }
@@ -677,26 +687,32 @@ void CellularInterpreter::processTimeouts() {
 
 }
 
-void CellularInterpreter::processLog(long ts, const char *category, const char *level, const char *msg) {
-    
+void CellularInterpreter::processLog(CellularInterpreterQueueEntry *entry) {
+    // long ts, const char *category, const char *level, const char *msg
+    // entry->ts, entry->category, entry->level, entry->message
     // _log.info("processLog testing ts=%ld category=%s level=%s msg=%s", ts, category, level, msg);
 
+    if ((logSettings & LOG_LITERAL) == 0) {
+        String msg = String::format("%010ld [%s] %s: %s\n", entry->ts, entry->category.c_str(), entry->level.c_str(), entry->message.c_str());
+        logOutput(msg);
+    }
+    
     for (std::vector<CellularInterpreterLogMonitor *>::iterator it = logMonitors.begin() ; it != logMonitors.end(); ++it) {
         CellularInterpreterLogMonitor *mon = *it;
 
         bool match = true;
-        if (match && mon->category.length() > 0 && !mon->category.equals(category)) {
+        if (match && mon->category.length() > 0 && !mon->category.equals(entry->category)) {
             match = false;
         }
-        if (match && mon->level.length() > 0 && !mon->level.equals(level)) {
+        if (match && mon->level.length() > 0 && !mon->level.equals(entry->level)) {
             match = false;
         }
-        if (match && mon->matchString.length() > 0 && strstr(msg, mon->matchString.c_str()) == 0) {
+        if (match && mon->matchString.length() > 0 && strstr(entry->message, mon->matchString.c_str()) == 0) {
             match = false;
         }
         if (match) {
-            _log.info("processLog match ts=%ld category=%s level=%s msg=%s", ts, category, level, msg);
-            mon->callback(ts, category, level, msg);
+            _log.info("processLog match ts=%ld category=%s level=%s msg=%s", entry->ts, entry->category.c_str(), entry->level.c_str(), entry->message.c_str());
+            mon->callback(entry->ts, entry->category, entry->level, entry->message);
         }
     }
 }
@@ -719,6 +735,7 @@ bool CellularInterpreter::isMatchingCommand(const char *test, const char *cmd) {
     if (strncmp(&test[start], cmd, cmdLen) == 0) {
         switch(test[start + cmdLen]) {
         case 0:
+        case '=':
         case '+':
         case '?':
         case ':':
@@ -941,7 +958,7 @@ CellularInterpreterCheckNcpFailure::~CellularInterpreterCheckNcpFailure() {
 }
 
 void CellularInterpreterCheckNcpFailure::setup(CellularInterpreterCallback callback) {
-    logMonitor.category = "hal";
+    // logMonitor.category = "hal"; // is ncp.client in 2.0.0
     logMonitor.level = "ERROR";
     logMonitor.matchString = "No response from NCP";
     logMonitor.callback = [this, callback](long ts, const char *category, const char *level, const char *msg) {
