@@ -195,7 +195,8 @@ public:
     enum class EntryType {
         UNKNOWN,
         LOG_ENTRY,
-        MODEM_ENTRY
+        MODEM_ENTRY,
+        LOG_SETTINGS
     };
     EntryType entryType = EntryType::UNKNOWN;
     long ts;
@@ -203,6 +204,8 @@ public:
     String level;
     String message;
     bool toModem;
+    uint32_t andMask; // LOG_SETTINGS
+    uint32_t orMask; // LOG_SETTINGS
 };
 
 
@@ -234,6 +237,9 @@ public:
 
     void processLine(char *lineBuffer);
 
+
+    void queueLogSettings(uint32_t andMask, uint32_t orMask);
+
     bool includeCommandInLog(const char *cmd) const;
 
     void logCommand(CellularInterpreterQueueEntry *entry);
@@ -246,6 +252,7 @@ public:
 
     void processLog(CellularInterpreterQueueEntry *entry);
 
+
     /**
 	 * @brief Virtual override for the StreamLogHandler to write data to the log
      * 
@@ -255,7 +262,9 @@ public:
 
     void logOutput(uint8_t c);
     void logOutput(const char *s);
-    
+
+    bool logSettingsTraceEnabled() const { return (logSettings & LOG_TRACE) != 0; };
+
     uint32_t getLogSettings() const { return logSettings; };
     uint32_t updateLogSettings(uint32_t andMask, uint32_t orMask);
 

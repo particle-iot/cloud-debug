@@ -464,6 +464,19 @@ Several commands are now decoded and helpful information is shown as [app.help] 
 0000026000 [ncp.at] TRACE: < OK
 ```
 
+```
+0000031664 [ncp.at] TRACE: > AT+USOCTL=1,0
+0000031672 [ncp.at] TRACE: < +CME ERROR: operation not allowed
+0000031675 [app.help] INFO: operation not allowed is expected here.
+```
+
+```
+0000038054 [ncp.at] TRACE: > AT+CSQ
+0000038059 [ncp.at] TRACE: < +CSQ: 13,3
+0000038063 [app.help] INFO: Signal Quality (CSQ): rssi=-87 dBm qual=3 (0-7, lower is better)
+0000038061 [ncp.at] TRACE: < OK
+```
+
 Operator codes (MCC/MNC) are decoded world-wide. The database is in the cloud debug firmware so it works without cellular and on all modems.
 
 ```
@@ -474,26 +487,22 @@ Operator codes (MCC/MNC) are decoded world-wide. The database is in the cloud de
 0000044257 [app.help] INFO:   oper=310410 carrier=AT&T Wireless Inc. country=United States
 ```
 
-Information about the carrier is periodically displayed for cellular devices:
+Information about the carrier, signal strength, power source, and battery is periodically displayed for cellular devices:
 
 ```
-0000148297 [app] INFO: Cellular Info: cid=14ffff519 lac=11511 mcc=310 mnc=410
-0000148298 [app] INFO: Carrier: AT&T Wireless Inc. Country: United States
-0000148349 [app] INFO: Strength: 34.4, Quality: 75.5, RAT: 3G
-0000148349 [app] INFO: Power source: USB Host
-0000148350 [app] INFO: Battery state: charged, SoC: 100.00
+0000064023 [app] INFO: Cloud connected for 00:30
+0000065817 [app] INFO: Cellular Info: cid=149999050 lac=11511 mcc=310 mnc=410
+0000065818 [app] INFO: Carrier: AT&T Wireless Inc. Country: United States
+0000065848 [app] INFO: Technology: 3G, Band: UMTS 850
+0000065868 [app] INFO: Strength: 36.5, Quality: 75.5, RAT: 3G
+0000065868 [app] INFO: Power source: USB Host
+0000065869 [app] INFO: Battery state: charged, SoC: 99.96
 ```
 
 It shows the technology, general frequency (700, 850, 900, etc.), and band number for LTE:
 
 ```
 0000247585 [app] INFO: Technology: LTE Cat M1, Band: LTE 700 (B12)
-```
-
-And the same (but no band number) for 2G/3G:
-
-```
-0000030026 [app] INFO: Technology: 3G, Band: UMTS 850
 ```
 
 It keeps track of how long connecting to cellular and connecting to the cloud take:
@@ -507,7 +516,32 @@ It keeps track of how long connecting to cellular and connecting to the cloud ta
 0001557290 [app] INFO: Lost cloud connection after 25:27
 ```
 
-It can detect if Ethernet is present:
+Logging of the modem information is now delayed until the modem is responding to commands:
+
+```
+0000026472 [app] INFO: manufacturer: u-blox
+0000026478 [app] INFO: model: SARA-U260
+0000026484 [app] INFO: firmware version: 23.20
+0000026501 [app] INFO: ordering code: SARA-U260-00S-00
+0000026512 [app] INFO: IMEI: 359999999907929
+0000026524 [app] INFO: ICCID: 8934000000000004028
+```
+
+When cloud connected it logs the device name and public IP address (for both cellular and Wi-Fi):
+
+```
+0000041093 [app] INFO: Device name: electron3
+0000041498 [app] INFO: Public IP address: 176.83.141.209
+```
+
+It periodically shows signal strength and base station MAC address for Wi-Fi:
+
+```
+0000072193 [app] INFO: Cloud connected for 00:20
+0000072195 [app] INFO: rssi=-72.0 bssid=FC:FF:FF:FF:0C:55
+```
+
+It can detect if Ethernet is present, and logs IP address information when present:
 
 ```
 0000015342 [app] INFO: This device could have Ethernet (is 3rd generation)

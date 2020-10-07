@@ -138,6 +138,12 @@ void CellularInterpreter::loop() {
         if (entry->entryType == CellularInterpreterQueueEntry::EntryType::MODEM_ENTRY) {
             processCommand(entry);
         }
+        else
+        if (entry->entryType == CellularInterpreterQueueEntry::EntryType::LOG_SETTINGS) {
+            logSettings &= entry->andMask;
+            logSettings |= entry->orMask;
+        }
+        
 
         delete entry;
     }
@@ -402,8 +408,9 @@ void CellularInterpreter::processLine(char *lineBuffer) {
             }
             else {
                 // Not a statement we care about, ignore the rest of this line.
-                char *msg = &token[strlen(token) + 1];
 
+                /*
+                char *msg = &token[strlen(token) + 1];
                 if ((logSettings & LOG_LITERAL) == 0) {
                     logOutput(colTokens[0]);
                     logOutput(' ');
@@ -412,6 +419,7 @@ void CellularInterpreter::processLine(char *lineBuffer) {
                     logOutput(msg);
                     logOutput('\n');
                 }
+                */
                 break;
             }
         }
@@ -492,10 +500,17 @@ void CellularInterpreter::processLine(char *lineBuffer) {
                 entry->entryType = CellularInterpreterQueueEntry::EntryType::MODEM_ENTRY;
                 entry->toModem = strcmp(token, "send") == 0;
 
-                //_log.info("whole=%s dec=%s",String(colTokens[0]).substring(0, 6).c_str(), String(colTokens[0]).substring(7).c_str() );
+                int tsWhole, tsDec = 0;
+                String s = colTokens[0];
+                int index = s.indexOf('.');
+                if (index >= 0) {
+                    tsWhole = atoi(s.substring(0, index));
+                    tsDec = atoi(s.substring(index + 1));
+                }
+                else {
+                    tsWhole = atoi(s);
+                }
 
-                int tsWhole = atoi(String(colTokens[0]).substring(0, 6));
-                int tsDec = atoi(String(colTokens[0]).substring(7));
                 entry->ts = (long) (tsWhole * 1000) + (tsDec % 1000);
                 entry->category = "ncp.at";
                 entry->level = "TRACE";
@@ -544,6 +559,18 @@ void CellularInterpreter::processLine(char *lineBuffer) {
 
 }
 
+void CellularInterpreter::queueLogSettings(uint32_t andMask, uint32_t orMask) {
+    CellularInterpreterQueueEntry *entry = new CellularInterpreterQueueEntry();
+    entry->entryType = CellularInterpreterQueueEntry::EntryType::LOG_SETTINGS;
+
+    entry->andMask = andMask;
+    entry->orMask = orMask;
+
+    queue.push_back(entry); 
+}
+    
+
+
 void CellularInterpreter::logCommand(CellularInterpreterQueueEntry *entry) {
     if (((logSettings & LOG_LITERAL) == 0) && ((logSettings & LOG_TRACE) != 0)) {
         String msg = String::format("%010ld [%s] %s: %s %s\n", entry->ts, entry->category.c_str(), entry->level.c_str(), (entry->toModem ? ">" : "<"), entry->message.c_str());
@@ -581,6 +608,24 @@ void CellularInterpreter::processCommand(CellularInterpreterQueueEntry *entry) {
     }
     else {
         // Receiving data from modem
+        if (strcmp(entry->message, "OK") == 0) {
+            // _log.info("recv OK lastCommand=%s", lastCommand.c_str());        
+            if (includeCommandInLog(lastCommand)) {
+                logCommand(entry);  
+            }
+            callCommandMonitors(CellularInterpreterModemMonitor::REASON_OK, lastCommand); 
+            lastCommand = "";
+        }
+        else 
+        if (strncmp(entry->message, "ERROR", 5) == 0 || strncmp(entry->message, "+CME ERROR", 10) == 0) {
+            // _log.info("recv ERROR lastCommand=%s", lastCommand.c_str());       
+            if (includeCommandInLog(lastCommand)) {
+                logCommand(entry);  
+            }
+            callCommandMonitors(CellularInterpreterModemMonitor::REASON_ERROR, lastCommand); 
+            lastCommand = "";
+        }
+        else
         if (entry->message.charAt(0) == '+') {
             // + response to a command, or a URC
             // _log.info("recv + or URC %s", command);        
@@ -599,24 +644,6 @@ void CellularInterpreter::processCommand(CellularInterpreterQueueEntry *entry) {
             //      5.573 AT send      50 "\x17\xfe\xfd\x00\x01\x00\x00\x00\x00\x00\x99\x00%\x00\x01\x00\x00\x00\x00\x00\x99.\xcc\x9dz\xec\xd54\xeb\x87\xbd{\xb2\xc0$}\x19\xf4\x11\xfc\x85\t\xb4\xe8\xae\xe5\xa6\x0e|\x15"
             //      5.709 AT read  +   16 "\r\n+USOST: 0,50\r\n"
             ignoreNextSend = true;
-        }
-        else 
-        if (strcmp(entry->message, "OK") == 0) {
-            // _log.info("recv OK lastCommand=%s", lastCommand.c_str());        
-            if (includeCommandInLog(lastCommand)) {
-                logCommand(entry);  
-            }
-            callCommandMonitors(CellularInterpreterModemMonitor::REASON_OK, lastCommand); 
-            lastCommand = "";
-        }
-        else 
-        if (strncmp(entry->message, "ERROR", 5) == 0) {
-            // _log.info("recv ERROR lastCommand=%s", lastCommand.c_str());       
-            if (includeCommandInLog(lastCommand)) {
-                logCommand(entry);  
-            }
-            callCommandMonitors(CellularInterpreterModemMonitor::REASON_ERROR, lastCommand); 
-            lastCommand = "";
         }
         else {
             // There are a bunch of other responses here like:

@@ -79,6 +79,20 @@ static const char _cfunResetMapping[] =
     "0: do not reset before setting fun\n"
     "1: silent reset plus SIM before setting fun\n";
 
+static const char _cievSignalMapping[] = 
+    "0: < -105 dBm\n"
+    "1: < -193 dBm\n"
+    "2: < -81 dBm\n"
+    "3: < -69 dBm\n"
+    "4: < -57 dBm\n"
+    "5: >= -57 dBm\n";
+
+static const char _cievGprsMapping[] = 
+    "0: no GPRS available\n"
+    "1: GPRS available but not registered\n"
+    "2: registered to GPRS\n";
+
+
 CellularHelp::CellularHelp() {
 }
 
@@ -150,6 +164,11 @@ void CellularHelp::setup() {
             "COPS", 
             CellularInterpreterModemMonitor::REASON_SEND | CellularInterpreterModemMonitor::REASON_PLUS,
             [](uint32_t reason, const char *cmd, CellularInterpreterModemMonitor *mon) {
+        // Ignore when trace is disabled
+        if (!CellularInterpreter::getInstance()->logSettingsTraceEnabled()) {
+            return;
+        }
+        
         // 
         CellularInterpreterParser parser;
         parser.parse(cmd);
@@ -247,7 +266,111 @@ void CellularHelp::setup() {
                 CellularInterpreter::mapValueToString(_cfunResetMapping, parser.getArgInt(1)).c_str());
         }
     });
-    
+
+    CellularInterpreter::getInstance()->addModemMonitor(
+            "USOCTL", 
+            CellularInterpreterModemMonitor::REASON_ERROR,
+            [](uint32_t reason, const char *cmd, CellularInterpreterModemMonitor *mon) {
+        // 
+        _log.info("operation not allowed is expected here.");
+    });
+
+    CellularInterpreter::getInstance()->addModemMonitor(
+            "CIEV", 
+            CellularInterpreterModemMonitor::REASON_URC,
+            [](uint32_t reason, const char *cmd, CellularInterpreterModemMonitor *mon) {
+        // 
+        CellularInterpreterParser parser;
+        parser.parse(cmd);
+
+        int descr = parser.getArgInt(0);
+        int value = parser.getArgInt(1);
+
+        switch(descr) {
+        case 1:
+            _log.info("CIEV battery charge level 0-5: %d", value);
+            break;
+
+        case 2:
+            _log.info("CIEV signal level %s", 
+                CellularInterpreter::mapValueToString(_cievSignalMapping, value).c_str());
+            break;
+        case 3:
+            _log.info("CIEV service %s registered to network", ((value == 0) ? "not" : ""));
+            break;            
+
+        case 7:
+            _log.info("CIEV service %s roaming", ((value == 0) ? "not" : ""));
+            break;            
+
+        case 9:
+            _log.info("CIEV %s", 
+                CellularInterpreter::mapValueToString(_cievGprsMapping, value).c_str());
+            break;            
+
+        default:
+            _log.info("CIEV descr=%d value=%d", descr, value);
+            break;
+        }
+
+        _log.info("Set module functionality (CFUN): %s", 
+            CellularInterpreter::mapValueToString(_cfunMapping, parser.getArgInt(0)).c_str());
+        if (parser.getNumArgs() > 1) {
+            _log.info("  Reset Mode: %s", 
+                CellularInterpreter::mapValueToString(_cfunResetMapping, parser.getArgInt(1)).c_str());
+        }
+    });
+
+    CellularInterpreter::getInstance()->addModemMonitor(
+            "CSQ", 
+            CellularInterpreterModemMonitor::REASON_PLUS,
+            [](uint32_t reason, const char *cmd, CellularInterpreterModemMonitor *mon) {
+        // Ignore when trace is disabled
+        if (!CellularInterpreter::getInstance()->logSettingsTraceEnabled()) {
+            return;
+        }
+
+        // 
+        CellularInterpreterParser parser;
+        parser.parse(cmd);
+
+        int rssi = parser.getArgInt(0);
+        int qual = parser.getArgInt(1);
+
+        String rssiStr;
+        switch(rssi) {
+        case 0:
+            rssiStr = "<-113 dBm";
+            break;
+
+        case 31:
+            rssiStr = ">=-51 dBm";
+            break;
+
+        case 99:
+            rssiStr = "unknown";
+            break;
+
+        default:
+            if (rssi < 31) {
+                rssiStr = String::format("%d dBm", -113 + 2 * rssi);
+            }
+            else {
+                rssiStr = String::format("unknown (%d)", rssi);
+            }
+        }
+
+        String qualStr;
+        if (qual <= 7) {
+            qualStr = String::format("%d (0-7, lower is better)", qual);
+        }
+        else {
+            qualStr = String::format("unknown (%d)", qual);
+        }
+
+        _log.info("Signal Quality (CSQ): rssi=%s qual=%s", rssiStr.c_str(), qualStr.c_str());
+    });
+
 }
 
 // [static]

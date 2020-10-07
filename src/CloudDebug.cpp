@@ -447,10 +447,10 @@ void setTraceLogging(bool trace) {
 	// Log.info("%s trace logging", (trace ? "enabling" : "disabling"));
 
     if (trace) {
-        CellularInterpreter::getInstance()->updateLogSettings(~0, CellularInterpreter::LOG_TRACE);
+        CellularInterpreter::getInstance()->queueLogSettings(~0, CellularInterpreter::LOG_TRACE);
     }
     else {
-        CellularInterpreter::getInstance()->updateLogSettings(~CellularInterpreter::LOG_TRACE, 0);
+        CellularInterpreter::getInstance()->queueLogSettings(~CellularInterpreter::LOG_TRACE, 0);
     }
 }
 
