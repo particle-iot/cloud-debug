@@ -567,6 +567,11 @@ Socket 1: handle 1 has 0 bytes pending
 
 ## Version History
 
+### 1.5.2 (2020-10-15)
+
+- Fixed memory leak on Quectel devices
+- Added memory usage reporting
+
 ### 1.5.1 (2020-10-07)
 
 - Initial preview/testing version

@@ -491,6 +491,7 @@ void CellularInterpreter::processLine(char *lineBuffer) {
 
                 entry->toModem = token[0] == '>';
                 entry->message = &token[2];
+                break;
             }
         }
         else {
@@ -547,6 +548,7 @@ void CellularInterpreter::processLine(char *lineBuffer) {
 
                     entry->message = command;
                 }
+                break;
             }
         }
             
@@ -953,6 +955,7 @@ void CellularInterpreterBlinkManager::loop() {
     if (curPattern) {
         if (curPattern->callRun()) {
             // Done with this pattern
+            delete curPattern;
             curPattern = 0;
             if (patternQueue.empty()) {
                 // No more patterns to display, restore default RGB behavior
