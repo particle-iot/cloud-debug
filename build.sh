@@ -1,9 +1,11 @@
 #!/bin/bash
 
-SOURCEVER=1
+SOURCEVER=2
 TARGETVER=1.5.2
 
 echo "const int SOURCEVER = $SOURCEVER;" > src/sourcever.h
+
+mkdir release || set status 0
 
 for PLATFORM in photon p1 electron argon boron bsom b5som
 do

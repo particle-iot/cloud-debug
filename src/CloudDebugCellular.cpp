@@ -302,7 +302,6 @@ void runReport10s() {
 		if (CellularHelper.getNetworkInfo(networkInfo)) {
 			Log.info("Technology: %s, Band: %s", networkInfo.accessTechnology.c_str(), networkInfo.band.c_str());
 		}
-
 	}
 
 	if (Cellular.ready()) {
@@ -343,7 +342,6 @@ void runReport10s() {
 		}
 
 		Log.info("Strength: %.1f, Quality: %.1f, RAT: %s", sig.getStrength(), sig.getQuality(), ratString.c_str());
-
 	}
 
 	popTraceLogging();

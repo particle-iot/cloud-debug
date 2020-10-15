@@ -12,6 +12,7 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 #include <vector>
 
 void buttonHandler();
+void outOfMemoryHandler(system_event_t event, int param);
 void stateStart();
 void stateStartTest();
 
@@ -33,13 +34,14 @@ unsigned long lastConnectReport = 0;
 unsigned long cloudConnectTime = 0;
 std::vector<bool> traceStack;
 CellularInterpreter cellularInterpreter;
+int memoryRequestFailure = -1;
 
 void subscriptionHandler(const char *eventName, const char *data);
 
 void setup() {
     Particle.subscribe("particle/device/", subscriptionHandler, MY_DEVICES);
 	System.on(button_click, buttonHandler);
-
+    System.on(out_of_memory, outOfMemoryHandler);
 
     // This application also works like Tinker, allowing it to be controlled from
     // the Particle mobile app. This function initializes the Particle.functions.
@@ -237,11 +239,20 @@ void loop() {
         buttonClicked = false;
         stateHandler = stateButtonTest;
     }
+
+    if (memoryRequestFailure > 0) {
+        Log.error("Out of memory error: %d bytes request failed", memoryRequestFailure);
+        memoryRequestFailure = -1;
+    }
 }
 
 
 void buttonHandler() {
 	buttonClicked = true;
+}
+
+void outOfMemoryHandler(system_event_t event, int param) {
+    memoryRequestFailure = param;
 }
 
 void stateStart() {
@@ -418,6 +429,9 @@ void stateCloudConnected() {
     	Log.info("Cloud connected for %s", elapsedString((millis() - cloudConnectTime) / 1000).c_str());
         runReport10s();
         runPowerReport();
+
+    	Log.info("Free Memory: %lu", System.freeMemory());
+
         commandParser.printMessagePrompt();
     }
 
