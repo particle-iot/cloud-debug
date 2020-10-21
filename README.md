@@ -26,11 +26,13 @@ particle update
 
 ### Download the binary
 
-The binaries are included in Github as releases. The releases match the major and minor version of Device OS that's targeted. For example, 1.5.1 targets 1.5.x, in this case 1.5.2. As other versions of cloud-debug are released, those will have increasing patch versions, like 1.5.1, 1.5.2, etc.. The last digit will continue to increase for each new version of the cloud-debug code.
+The binaries are included in Github as releases. The latest release is on Github on the right-hand size of the window under **Releases**
+
+![Release](images/release.png)
+
+The releases match the major and minor version of Device OS that's targeted. For example, 1.5.1 targets 1.5.x, in this case 1.5.2. As other versions of cloud-debug are released, those will have increasing patch versions, like 1.5.1, 1.5.2, etc.. The last digit will continue to increase for each new version of the cloud-debug code and does not exactly match the Device OS version!
 
 Because binaries are generally compatible with later versions of Device OS, you don't need to have an exact match on the Device OS versions and you do not need to downgrade your Device OS binary.
-
-When a version of cloud-debug is released for 2.0.x, it will start with a 2.0.x version with the next higher patch version. For example, it might be 2.0.3 if the last 1.5.x version was 1.5.3. Note that there could be both 1.5.3 and 2.0.3 if versions for both versions of Device OS are built. 
 
 Since user firmware binaries are backward compatible, the 1.5.1 version will work on 2.0.x and 3.0.x, but if we need to take advantage of features only included in a later version we may include multiple binary targets in the future.
 
@@ -566,6 +568,11 @@ Socket 1: handle 1 has 0 bytes pending
 
 
 ## Version History
+
+### 1.5.3 (2020-10-21)
+
+- Fixed erroneous help message on read of CREG/CEREG/CGREG; displayed set help, not read help.
+- README clarifications
 
 ### 1.5.2 (2020-10-15)
 

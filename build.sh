@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SOURCEVER=2
+SOURCEVER=3
 TARGETVER=1.5.2
 
 echo "const int SOURCEVER = $SOURCEVER;" > src/sourcever.h

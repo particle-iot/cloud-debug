@@ -124,9 +124,12 @@ void CellularHelp::setup() {
         }
 
         if ((reason & CellularInterpreterModemMonitor::REASON_SEND) != 0) {
-            _log.info("%s Set to %s", 
-                regType.c_str(), 
-                CellularInterpreter::mapValueToString(_cregnMapping, parser.getArgInt(0)).c_str());
+            if (parser.getNumArgs() > 0) {
+                // Set if numArgs > 0
+                _log.info("%s Set to %s", 
+                    regType.c_str(), 
+                    CellularInterpreter::mapValueToString(_cregnMapping, parser.getArgInt(0)).c_str());
+            }
             return;
         }
 
