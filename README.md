@@ -83,8 +83,8 @@ Note, however, that particle serial monitor is only a monitor. You cannot type c
 
 These application notes may help decode the logs.
 
-- [AN003 Interpreting Cloud Debug](https://github.com/particle-iot/app-notes/tree/master/AN003-Interpreting-Cloud-Debug) shows how to interpret cloud debugging logs to troubleshoot various common issues.
-- [AN004 Interpreting Cloud Debug-2](https://github.com/particle-iot/app-notes/tree/master/AN004-Interpreting-Cloud-Debug-2) is a deep dive into interpreting cloud debug logs and cross-referencing the AT command guide for the u-blox modem.
+- [AN003 Interpreting Cloud Debug](https://docs.particle.io/datasheets/app-notes/an003-interpreting-cloud-debug/) shows how to interpret cloud debugging logs to troubleshoot various common issues.
+- [AN004 Interpreting Cloud Debug-2](https://docs.particle.io/datasheets/app-notes/an004-interpreting-cloud-debug-2/) is a deep dive into interpreting cloud debug logs and cross-referencing the AT command guide for the u-blox modem.
 
 ## Using the cloud debug command line
 
