@@ -344,6 +344,9 @@ void runReport10s() {
 		Log.info("Strength: %.1f, Quality: %.1f, RAT: %s", sig.getStrength(), sig.getQuality(), ratString.c_str());
 	}
 
+	// In almost all cases, this will already have been done, this is just a safety check to fix ch70101
+	reportModemInfo();
+
 	popTraceLogging();
 }
 

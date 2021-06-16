@@ -294,6 +294,7 @@ protected:
 
     os_thread_t loopThread = 0;
     bool        ignoreNextSend = false;
+    bool        ignoreNextOK = false;
     String lastCommand;
 
     std::deque<CellularInterpreterQueueEntry *> queue;

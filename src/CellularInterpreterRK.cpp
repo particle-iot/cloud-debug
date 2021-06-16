@@ -545,6 +545,19 @@ void CellularInterpreter::processLine(char *lineBuffer) {
                     }
 
                     // Truncate command to a reasonable length?
+                    if (strcmp(command, "AT") == 0) {
+                        // Empty command 
+                        ignoreNextOK = true;
+                        delete entry;
+                        entry = 0;
+                        break;
+                    }
+                    else if (strcmp(command, "OK") == 0 && ignoreNextOK) {
+                        ignoreNextOK = false;
+                        delete entry;
+                        entry = 0;
+                        break;
+                    }
 
                     entry->message = command;
                 }

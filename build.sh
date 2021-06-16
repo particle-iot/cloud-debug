@@ -1,16 +1,13 @@
 #!/bin/bash
 
-SOURCEVER=3
-TARGETVER=1.5.2
+SOURCEVER=4
+TARGETVER=2.1.0
 
 echo "const int SOURCEVER = $SOURCEVER;" > src/sourcever.h
 
 mkdir release || set status 0
 
-for PLATFORM in photon p1 electron argon boron bsom b5som
+for PLATFORM in photon p1 electron argon boron bsom b5som tracker
 do
     particle compile $PLATFORM . --target $TARGETVER --saveTo release/$PLATFORM.bin
 done 
-
-# Tracker is currently a special case that requires 1.5.4-rc.1
-particle compile tracker . --target 1.5.4-rc.1 --saveTo release/tracker.bin

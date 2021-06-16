@@ -569,6 +569,11 @@ Socket 1: handle 1 has 0 bytes pending
 
 ## Version History
 
+### 2.1.4 (2021-06-16)
+
+- Fix modem information sometimes not reported on Gen 3 (ch70101)
+- Targets device OS 2.1.0 on all platforms
+
 ### 1.5.3 (2020-10-21)
 
 - Fixed erroneous help message on read of CREG/CEREG/CGREG; displayed set help, not read help.
