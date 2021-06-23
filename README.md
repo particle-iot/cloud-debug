@@ -2,6 +2,14 @@
 
 ## Installing
 
+### Using the Chrome browser
+
+If you are using the Chrome web browser on Windows 10, Mac, Linux, Chromebook, or some Android phones, you can install cloud debug right from the web page with no additional software to download or install.
+
+[Web-based Cloud Debug Install](https://docs.particle.io/cloud-debug/)
+
+This feature is not available on other browsers or iOS devices (iPhone and iPad).
+
 ### Install the Particle CLI
 
 If you haven't already installed the [Particle CLI](https://docs.particle.io/tutorials/developer-tools/cli/), so should do so now. 
