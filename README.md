@@ -18,11 +18,11 @@ Once installed, you will enter Particle CLI commands in a Command Prompt or Term
 
 ### Update Device OS
 
-The binaries target Device OS 1.5.2, except for the Tracker SoM. This means that Device OS 1.5.2 **or later** is required. If you're already installed 2.0.0 you can leave it on your device and still use these binaries.
-
-The Tracker SoM including the Tracker Evaluation Board and Tracker One should include Device OS 1.5.4-rc.1 and does not need to be upgraded. The binaries for Tracker target 1.5.4-rc.1 and will work on that version and later.
+The cloud debug binaries target a variety of versions of Device OS (see release notes, below). 
 
 If you have an older version of Device OS installed you will want to manually upgrade it by USB. While devices can update Device OS OTA (over-the-air), presumably if you need the cloud debugging tool you're having trouble connecting to the cloud, and thus will not be able to upgrade OTA.
+
+The easiest method is to use the web-based installer, above. However you can often use the Particle CLI:
 
 - Connect the device by USB to your computer.
 - Enter DFU mode (blinking yellow) by holding down MODE button and tapping RESET. Continue to hold down MODE while the status LED blinks yellow until it blinks magenta (red and blue at the same time) and release.
@@ -31,6 +31,8 @@ If you have an older version of Device OS installed you will want to manually up
 ```
 particle update
 ```
+
+The exception is the P2. The `particle update` command does not update to Device OS 5.0.1 needed by cloud debug.
 
 ### Download the binary
 
@@ -52,11 +54,11 @@ There is a pre-built binary for each device that is supported, such as:
 | Gen 2 | Wi-Fi    | p1.bin | |
 | Gen 2 | Cellular | electron.bin | Also E Series, all SKUs |
 | Gen 3 | Wi-Fi    | argon.bin | |
-| Gen 3 | Cellular | boron.bin | Both Boron 2G/3G and Boron LTE |
-| Gen 3 | Cellular | bsom.bin | B402 LTE Cat M1 (North America) |
-| Gen 3 | Cellular | b5som.bin | B523 LTE Cat 1 (Europe) |
-| Gen 3 | Cellular | tracker.bin | Tracker SoM and Tracker One, both T402 and T523 |
-
+| Gen 3 | Wi-Fi    | p2.bin | |
+| Gen 3 | Cellular | boron.bin | Both Boron 2G/3G (BRN310, BRN314) and Boron LTE (BRN402, BRN404, BRN404X) |
+| Gen 3 | Cellular | bsom.bin | B Series LTE Cat M1 (North America) (B402, B404, B404X) |
+| Gen 3 | Cellular | b5som.bin | B Series LTE Cat 1 with 2G/3G (EMEAAA) (B523, B524) |
+| Gen 3 | Cellular | tracker.bin | Tracker SoM and Tracker One, T402, T404, T523, T524, and equivalent ONE models |
 
 ### Flashing the binary to the device
 
@@ -576,6 +578,13 @@ Socket 1: handle 1 has 0 bytes pending
 
 
 ## Version History
+
+### 4.0.5 (2022-09-23)
+
+- Report MNO profile 100 as manual band configuration instead of European to reduce confusion
+- Targets Device OS 2.3.0 on Electron/E Series, P1, and Photon
+- Targets Device OS 4.0.0 on argon, boron, bsom, b5som, tracker
+- Targets Device OS 5.0.1 on p2
 
 ### 2.1.4 (2021-06-16)
 

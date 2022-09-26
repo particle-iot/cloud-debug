@@ -1,6 +1,6 @@
 #include "CloudDebug.h"
 
-#if Wiring_WiFi
+#if Wiring_WiFi && !HAL_PLATFORM_WIFI_SCAN_ONLY
 
 void stateWiFiWait();
 void stateWiFiReport();
@@ -131,7 +131,7 @@ void networkSetup() {
     .addCommandOption('t', "t", "Authentication type WEP, WPA, WPA2 (required if AP not available)", false, 1);
 
 
-#if PLATFORM_ID == PLATFORM_PHOTON_PRODUCTION || PLATFORM_ID == PLATFORM_P1
+#if defined(PLATFORM_PHOTON_PRODUCTION) && (PLATFORM_ID == PLATFORM_PHOTON_PRODUCTION || PLATFORM_ID == PLATFORM_P1)
 	// 
 	commandParser.addCommandHandler("useDynamicIP", "Turn off static IP address mode (persistent)", [](SerialCommandParserBase *) {
 		WiFi.useDynamicIP();
@@ -189,7 +189,7 @@ void networkSetup() {
 
 void stateStartNetworkTest() {
 
-#if (PLATFORM_ID == PLATFORM_PHOTON_PRODUCTION) || (PLATFORM_ID == PLATFORM_P1)
+#if defined(PLATFORM_PHOTON_PRODUCTION) && ((PLATFORM_ID == PLATFORM_PHOTON_PRODUCTION) || (PLATFORM_ID == PLATFORM_P1))
 	{
 		WLanSelectAntenna_TypeDef ant = wlan_get_antenna(NULL);
 
@@ -337,7 +337,7 @@ void stateWiFiReport() {
 		Log.info("ping addr %s=%d", addr.toString().c_str(), count);
 	}
 
-#if (PLATFORM_ID == PLATFORM_PHOTON_PRODUCTION) || (PLATFORM_ID == PLATFORM_P1)
+#if defined(PLATFORM_PHOTON_PRODUCTION) && ((PLATFORM_ID == PLATFORM_PHOTON_PRODUCTION) || (PLATFORM_ID == PLATFORM_P1))
 	{
 		IPAddress addr;
 

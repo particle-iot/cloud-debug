@@ -292,17 +292,23 @@ void stateStartTest() {
             platform = "gcc";
             break;
 
+#ifdef PLATFORM_PHOTON_PRODUCTION
         case PLATFORM_PHOTON_PRODUCTION:
             platform = "Photon";
             break;
+#endif
 
+#ifdef PLATFORM_P1
         case PLATFORM_P1:
             platform = "P1";
             break;
+#endif
 
+#ifdef PLATFORM_ELECTRON_PRODUCTION
         case PLATFORM_ELECTRON_PRODUCTION:
             platform = "Electron/E Series";
             break;
+#endif
 
         case PLATFORM_ARGON:
             platform = "Argon";
@@ -331,6 +337,13 @@ void stateStartTest() {
             platform = "Tracker";
             break;
 #endif
+
+#ifdef PLATFORM_P2
+        case PLATFORM_P2:
+            platform = "P2";
+            break;
+#endif
+
         default:
             platform = String::format("unknown platform %d", PLATFORM_ID);
             break;

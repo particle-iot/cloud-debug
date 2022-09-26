@@ -63,8 +63,8 @@ static const char _umnoProfMapping[] =
     "19: Vodafone\n"
     "21: Telus\n"
     "31: Deutsche Telekom\n"
-    "100: European\n"
-    "101: European (no ePCO)\n"
+    "100: Manual band selection (or Europe)\n"
+    "101: Manual band selection (or Europe, no ePCO)\n"
     "198: AT&T (no band 5)\n";
 
 static const char _cfunMapping[] = 
