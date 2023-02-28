@@ -1,5 +1,12 @@
 # Cloud Debug - Tool for debugging cellular, Wi-Fi and cloud connectivity issues
 
+You should use the [web device doctor](https://docs.particle.io/tools/doctor/) instead of using cloud debug. The web device doctor
+now contains all of the features of cloud debug and also can debug cloud-side configuration and activation issues.
+
+The firmware in this repository is no longer maintained and new version will not be updated in the future.
+
+---
+
 ## Installing
 
 ### Using the Chrome browser

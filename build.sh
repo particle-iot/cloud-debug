@@ -11,7 +11,7 @@ do
     particle compile $PLATFORM . --target 2.3.0 --saveTo release/$PLATFORM.bin
 done 
 
-for PLATFORM in argon boron bsom b5som tracker
+for PLATFORM in argon boron bsom b5som tracker esomx
 do
     particle compile $PLATFORM . --target 4.0.0 --saveTo release/$PLATFORM.bin
 done 
