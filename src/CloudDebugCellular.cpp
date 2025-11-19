@@ -2,10 +2,6 @@
 
 
 #if Wiring_Cellular
-
-//  
-#include "CarrierLookupRK.h"
-#include "CellularHelp.h"
  
 void stateCellularWaitModemOn();
 void stateCellularWait();
@@ -33,15 +29,10 @@ void runTowerTest();
 
 CellularHelperEnvironmentResponseStatic<32> envResp;
 static bool modemInfoReported = false;
-CellularHelp cellularHelp;
 
 void networkSetup() {
 
 	cellular_on(NULL);
-
-
-	// Add CellularHelp functions to CellularInterpreter
-	cellularHelp.setup();
 
 	commandParser.addCommandHandler("tower", "report cell tower information", [](SerialCommandParserBase *) {
 		runTowerTest();
@@ -166,9 +157,7 @@ void networkSetup() {
 		if (commandParser.getArgsCount() == 2) {
 			commandParser.printMessageNoPrompt("Sending command %s", commandParser.getArgString(1));
 
-			pushTraceLogging(true);
 			int res = Cellular.command("%s\r\n", commandParser.getArgString(1));
-			popTraceLogging();
 			if (res == RESP_OK) {
 				commandParser.printMessageNoPrompt("Success! (result=%d)", res);
 			}
@@ -204,7 +193,6 @@ void networkSetup() {
 }
 
 void networkLoop() {
-	cellularHelp.loop();
 }
 
 void stateStartNetworkTest() {
@@ -228,12 +216,9 @@ void stateCellularWaitModemOn() {
 		return;
 	}
 
-	pushTraceLogging(false);
-
 	reportNonModemInfo();
 	reportModemInfo();
 
-	popTraceLogging();
 
 
 	Cellular.connect();
@@ -276,10 +261,7 @@ void runReport10s() {
 	// Runs every 10 seconds in stateIdle
 	static int runs = 0;
 
-	// First two times, leave trace logging on
-	// After that, only report the file results to avoid noise
-	pushTraceLogging(++runs <= 2);
-
+	
 	if (Particle.connected()) {
 		CellularGlobalIdentity cgi = {0};
         cgi.size = sizeof(CellularGlobalIdentity);
@@ -288,11 +270,6 @@ void runReport10s() {
         cellular_result_t res = cellular_global_identity(&cgi, NULL);
         if (res == SYSTEM_ERROR_NONE) {
             Log.info("Cellular Info: cid=%lu lac=%u mcc=%u mnc=%u", cgi.cell_id, cgi.location_area_code, cgi.mobile_country_code, cgi.mobile_network_code);
-
-			String country = lookupCountry(cgi.mobile_country_code);
-			String carrier = lookupMccMnc(cgi.mobile_country_code, cgi.mobile_network_code);
-
-			Log.info("Carrier: %s Country: %s", carrier.c_str(), country.c_str());
         }
         else {
             Log.info("cellular_global_identity failed %d", res);
@@ -347,7 +324,6 @@ void runReport10s() {
 	// In almost all cases, this will already have been done, this is just a safety check to fix ch70101
 	reportModemInfo();
 
-	popTraceLogging();
 }
 
 void reportNonModemInfo() {
@@ -397,8 +373,6 @@ void reportModemInfo() {
 
 	modemInfoReported = true;
 
-	pushTraceLogging(false);
-	
 	Log.info("manufacturer: %s", mfg.c_str());
 
 	Log.info("model: %s", CellularHelper.getModel().c_str());
@@ -413,8 +387,6 @@ void reportModemInfo() {
 
 	Log.info("ICCID: %s", CellularHelper.getICCID().c_str());
 	
-	popTraceLogging();
-
 }
 
 
@@ -423,9 +395,7 @@ void printCellData(CellularHelperEnvironmentCellData *data) {
 
 	// Log.info("mcc=%d mnc=%d", data->mcc, data->mnc);
 
-	String operatorName = lookupMccMnc(data->mcc, data->mnc);
-
-	Log.info("%s %s %s %d bars", whichG, operatorName.c_str(), data->getBandString().c_str(), data->getBars());
+	Log.info("%s %d %d %s %d bars", whichG, data->mcc, data->mnc, data->getBandString().c_str(), data->getBars());
 }
 
 

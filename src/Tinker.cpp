@@ -39,7 +39,7 @@ const PinMapping g_pinmap[] = {
     PIN(P1S0),PIN(P1S1), PIN(P1S2), PIN(P1S3), PIN(P1S4), PIN(P1S5), PIN(P1S6),
 # endif // PLATFORM_ID == PLATFORM_P1
 
-# if defined(PLATFORM_ELECTRON_PRODUCTION) && PLATFORM_ID == PLATFORM_ELECTRON_PRODUCTION
+# if PLATFORM_ID == PLATFORM_ELECTRON_PRODUCTION
     ,
     PIN(B0), PIN(B1), PIN(B2), PIN(B3), PIN(B4), PIN(B5), PIN(C0), PIN(C1),
     PIN(C2), PIN(C3), PIN(C4), PIN(C5)
@@ -71,19 +71,33 @@ const PinMapping g_pinmap[] = {
 #  endif // PLATFORM_ID == PLATFORM_ASOM
 #  endif // PLATFORM_ID == PLATFORM_BSOM || PLATFORM_ID == PLATFORM_B5SOM || PLATFORM_ID == PLATFORM_ASOM
 # endif // PLATFORM_ID == PLATFORM_TRACKER
-
-    // P2
-#elif HAL_PLATFORM_RTL872X
+#elif HAL_PLATFORM_RTL872X // P2, TrackerM or MSoM
     PIN(D0), PIN(D1), PIN(D2), PIN(D3), PIN(D4), PIN(D5), PIN(D6), PIN(D7), PIN(D8), PIN(D9),
     PIN(D10), PIN(D11), PIN(D12), PIN(D13), PIN(D14), PIN(D15), PIN(D16), PIN(D17), PIN(D18),
     PIN(D19), PIN(D20), PIN(D21),
     PIN(A0), PIN(A1), PIN(A2), PIN(A3), PIN(A4), PIN(A5),
     PIN(SS), PIN(SCK), PIN(MISO), PIN(MOSI), PIN(SS1), PIN(SCK1), PIN(MISO1), PIN(MOSI1),
     PIN(SDA), PIN(SCL),
-    PIN(TX), PIN(RX), PIN(TX1), PIN(RX1), PIN(CTS1), PIN(RTS1),
+    PIN(TX), PIN(RX), PIN(TX1), PIN(RX1),
     PIN(WKP)
+#  if PLATFORM_ID == PLATFORM_P2
+    // P2 exposes pins for Serial3, NCP pins not exposed on TrackerM or MSoM
+    ,
+    PIN(TX2), PIN(RX2), PIN(CTS2), PIN(RTS2)
+#  endif // PLATFORM_ID == PLATFORM_P2
+#  if PLATFORM_ID == PLATFORM_P2 || PLATFORM_ID == PLATFORM_TRACKERM
+    ,
+    PIN(S0), PIN(S1), PIN(S2), PIN(S3), PIN(S4), PIN(S5), PIN(S6),
+    PIN(CTS1), PIN(RTS1)
+#  elif PLATFORM_ID == PLATFORM_MSOM
+    ,
+    PIN(D22), PIN(D23), PIN(D24), PIN(D25), PIN(D26), PIN(D27), PIN(D28), PIN(D29),
+    PIN(A6),
+    PIN(CTS), PIN(RTS)
+#  else
+#  error Unsupported HAL_PLATFORM_RTL872X platform
+#  endif
 #else // HAL_PLATFORM_RTL872X
-
 # error Unsupported platform
 #endif
 };
@@ -210,7 +224,7 @@ int tinkerDigitalWrite(String command)
 int tinkerAnalogRead(String pinStr)
 {
     pin_t pin = lookupPinByName(pinStr);
-    if (pin != PIN_INVALID && HAL_Validate_Pin_Function(pin, PF_ADC) == PF_ADC) {
+    if (pin != PIN_INVALID /* && HAL_Validate_Pin_Function(pin, PF_ADC) == PF_ADC */) {
         return analogRead(pin);
     }
     return -1;
@@ -245,8 +259,8 @@ int tinkerAnalogWrite(String command)
     }
 
     pin_t pin = lookupPinByName(pinStr);
-    if (pin != PIN_INVALID && (HAL_Validate_Pin_Function(pin, PF_DAC) == PF_DAC ||
-        HAL_Validate_Pin_Function(pin, PF_TIMER) == PF_TIMER)) {
+    if (pin != PIN_INVALID /* && (HAL_Validate_Pin_Function(pin, PF_DAC) == PF_DAC ||
+        HAL_Validate_Pin_Function(pin, PF_TIMER) == PF_TIMER)*/) {
         pinMode(pin, OUTPUT);
         analogWrite(pin, value);
         return 1;

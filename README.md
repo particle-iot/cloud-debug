@@ -420,7 +420,6 @@ Note that there are several libraries required. These are automatically loaded f
 
 - [CellularHelper](https://github.com/particle-iot/CellularHelper)
 - [SerialCommandParserRK](https://github.com/rickkas7/SerialCommandParserRK)
-- [CarrierLookupRK](https://github.com/rickkas7/CarrierLookupRK)
 
 Because of the number of files and libraries, it's not particularly convenient to use the Web IDE; it's much easier to use Workbench or the CLI compiler.
 
@@ -463,47 +462,6 @@ On devices with a bq24195 PMIC (Electron, E Series, Boron, Tracker SoM), some co
 0000023361 [app] INFO: PMIC minimumSystemVoltage: 3500 mV
 0000023362 [app] INFO: PMIC chargeCurrentValue: 896 mA
 0000023362 [app] INFO: PMIC chargeVoltageValue: 4112 mV
-```
-
-Several commands are now decoded and helpful information is shown as [app.help] messages:
-
-```
-0000034916 [ncp.at] TRACE: > AT+UMNOPROF?
-0000034923 [ncp.at] TRACE: < +UMNOPROF: 2
-0000038600 [app.help] INFO: Mobile Network Operator Profile (UMNOPROF): AT&T (2)
-```
-
-```
-0000026000 [ncp.at] TRACE: > AT+CREG?
-0000026000 [ncp.at] TRACE: < +CREG: 2,5,"2CF7","8AFFF6F",6
-0000026493 [app.help] INFO: Network registration (CREG) Status: registered, roaming (5)
-0000026494 [app.help] INFO: Tracking area code: 2CF7
-0000026494 [app.help] INFO: Cell identifier: 8AFFF6F
-0000026495 [app.help] INFO: Access technology: GSM + HSDPA & USUPA (6)
-0000026000 [ncp.at] TRACE: < OK
-```
-
-```
-0000031664 [ncp.at] TRACE: > AT+USOCTL=1,0
-0000031672 [ncp.at] TRACE: < +CME ERROR: operation not allowed
-0000031675 [app.help] INFO: operation not allowed is expected here.
-```
-
-```
-0000038054 [ncp.at] TRACE: > AT+CSQ
-0000038059 [ncp.at] TRACE: < +CSQ: 13,3
-0000038063 [app.help] INFO: Signal Quality (CSQ): rssi=-87 dBm qual=3 (0-7, lower is better)
-0000038061 [ncp.at] TRACE: < OK
-```
-
-Operator codes (MCC/MNC) are decoded world-wide. The database is in the cloud debug firmware so it works without cellular and on all modems.
-
-```
-0000044000 [ncp.at] TRACE: > AT+COPS?
-0000044000 [ncp.at] TRACE: < +COPS: 0,2,"310410",2
-0000044254 [app.help] INFO: Operator Selection (COPS) Read: mode=automatic (0)
-0000044255 [app.help] INFO:   format=numeric (2)
-0000044257 [app.help] INFO:   oper=310410 carrier=AT&T Wireless Inc. country=United States
 ```
 
 Information about the carrier, signal strength, power source, and battery is periodically displayed for cellular devices:
@@ -567,24 +525,11 @@ It can detect if Ethernet is present, and logs IP address information when prese
 0000015344 [app] INFO: FEATURE_ETHERNET_DETECTION not enabled, so Ethernet will not be used (even if present)
 ```
 
-On the Electron and E Series the extraordinarily verbose logs are now tamed and look like the Gen 3 logs with just the essential command and response information. If you really want the old behavior back, the `literal -e` (enable) cloud debug command will turn on the old, completely unfiltered behavior. 
-
-```
-    42.009 AT send      36 "AT+USOST=1,\"3.210.194.186\",5684,33\r\n"
-    42.017 AT read  >    3 "\r\n@"
-    42.017 AT send      33 "\x17\xfe\xfd\x00\x01\x00\x00\x00\x00\x00\r\x00\x14\x00\x01\x00\x00\x00\x00\x00\r\xb9P\xae\xb2\xa3\x8b\x93|N\a\x94u"
-    42.153 AT read  +   16 "\r\n+USOST: 1,33\r\n"
-    42.154 AT read OK    6 "\r\nOK\r\n"
-    42.154 AT send       4 "AT\r\n"
-    42.157 AT read OK    6 "\r\nOK\r\n"
-    42.157 AT send      14 "AT+USORF=1,0\r\n"
-    42.164 AT read  +   15 "\r\n+USORF: 1,0\r\n"
-Socket 1: handle 1 has 0 bytes pending
-    42.167 AT read OK    6 "\r\nOK\r\n"
-```
-
-
 ## Version History
+
+### 5.0.0 (2025-11-19)
+
+- Now always outputs raw logs instead of partially decoding them.
 
 ### 4.0.5 (2022-09-23)
 

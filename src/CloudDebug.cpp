@@ -1,12 +1,13 @@
 #include "Particle.h"
 
-SYSTEM_THREAD(ENABLED);
+#ifndef SYSTEM_VERSION_v620
+SYSTEM_THREAD(ENABLED); // System thread defaults to on in 6.2.0 and later and this line is not required
+#endif
 SYSTEM_MODE(SEMI_AUTOMATIC);
 
 // Log handler is created dynamically below
 
 #include "CloudDebug.h"
-#include "CellularInterpreterRK.h"
 #include "sourcever.h"
 
 #include <vector>
@@ -33,21 +34,18 @@ unsigned long stateTime;
 unsigned long lastConnectReport = 0;
 unsigned long cloudConnectTime = 0;
 std::vector<bool> traceStack;
-CellularInterpreter cellularInterpreter;
 int memoryRequestFailure = -1;
 
 void subscriptionHandler(const char *eventName, const char *data);
 
 void setup() {
-    Particle.subscribe("particle/device/", subscriptionHandler, MY_DEVICES);
+    Particle.subscribe("particle/device/", subscriptionHandler);
 	System.on(button_click, buttonHandler);
     System.on(out_of_memory, outOfMemoryHandler);
 
     // This application also works like Tinker, allowing it to be controlled from
     // the Particle mobile app. This function initializes the Particle.functions.
     tinkerSetup();
-
-	cellularInterpreter.setup();
 
     networkSetup();
 
@@ -111,63 +109,6 @@ void setup() {
     .addCommandOption('c', "connect", "connect using using Particle.connect()")
     .addCommandOption('d', "disconnect", "disconnect using Particle.disconnect()");
 
-	commandParser.addCommandHandler("trace", "enable or disable trace logging", [](SerialCommandParserBase *) {
-        CommandParsingState *cps = commandParser.getParsingState();
-		
-		if (cps->getByShortOpt('e')) {
-		    commandParser.printMessageNoPrompt("enabling trace mode");
-            showTrace = true;
-        }        
-        else
-		if (cps->getByShortOpt('d')) {
-		    commandParser.printMessageNoPrompt("disabling trace mode");
-            showTrace = false;
-        }        
-        else {
-            // Toggle with no options
-            showTrace = !showTrace;
-		    commandParser.printMessageNoPrompt("trace mode %s", showTrace ? "enabled" : "disabled");
-        }
-        traceManuallySet = true;
-
-        setTraceLogging(showTrace);
-		commandParser.printMessagePrompt();
-	})
-    .addCommandOption('e', "enable", "enable trace logging")
-    .addCommandOption('d', "disable", "disable trace logging");
-        
-	commandParser.addCommandHandler("literal", "enable or disable literal (non-filtered) logging", [](SerialCommandParserBase *) {
-        CommandParsingState *cps = commandParser.getParsingState();
-		
-        bool literal = (CellularInterpreter::getInstance()->getLogSettings() & CellularInterpreter::LOG_LITERAL) != 0;
-
-		if (cps->getByShortOpt('e')) {
-		    commandParser.printMessageNoPrompt("enabling literal mode");
-            literal = true;
-        }        
-        else
-		if (cps->getByShortOpt('d')) {
-		    commandParser.printMessageNoPrompt("disabling literal mode");
-            literal = false;
-        }        
-        else {
-            // Toggle with no options
-            literal = !literal;
-		    commandParser.printMessageNoPrompt("literal mode %s", literal ? "enabled" : "disabled");
-        }
-
-        if (literal) {
-            CellularInterpreter::getInstance()->updateLogSettings(~0, CellularInterpreter::LOG_LITERAL);
-        }
-        else {
-            CellularInterpreter::getInstance()->updateLogSettings(~CellularInterpreter::LOG_LITERAL, 0);
-        }
-
-		commandParser.printMessagePrompt();
-	})
-    .addCommandOption('e', "enable", "enable trace logging")
-    .addCommandOption('d', "disable", "disable trace logging");
-
 
 #if 0
     // This does not currently work, not sure why
@@ -227,8 +168,6 @@ void setup() {
 
 void loop() {
     networkLoop();
-
-	cellularInterpreter.loop();
 
 	commandParser.loop();
 
@@ -470,28 +409,6 @@ void stateIdle() {
 
 }
 
-void setTraceLogging(bool trace) {
-	// Log.info("%s trace logging", (trace ? "enabling" : "disabling"));
-
-    if (trace) {
-        CellularInterpreter::getInstance()->queueLogSettings(~0, CellularInterpreter::LOG_TRACE);
-    }
-    else {
-        CellularInterpreter::getInstance()->queueLogSettings(~CellularInterpreter::LOG_TRACE, 0);
-    }
-}
-
-void pushTraceLogging(bool trace) {
-    bool curTrace = (CellularInterpreter::getInstance()->getLogSettings() & CellularInterpreter::LOG_TRACE) != 0;
-
-    traceStack.push_back(curTrace);
-    setTraceLogging(trace);
-}
-
-void popTraceLogging() {
-    setTraceLogging(traceStack.back());
-    traceStack.pop_back();
-}
 
 
 #if PLATFORM_ID == PLATFORM_ARGON
